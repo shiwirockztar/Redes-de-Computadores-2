@@ -7,6 +7,36 @@ arp -a
 arp -d 
 arp -d *
 
+switchport mode access
+
+reload 
+show runnig-confi
+
+//configuracion de inicio
+configure terminal
+
+Switch>enable
+Switch#configure terminal
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#interface range fastEthernet 0/1-2
+Switch(config-if-range)#switchport mode access
+Switch(config-if-range)#switchport access vlan 10
+Switch(config-if-range)#interface range fastEthernet 0/3-4
+Switch(config-if-range)#switchport mode access
+
+
+Switch>enable
+Switch#configure terminal
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#interface range fastEthernet 0/24
+Switch(config-if-range)#switchport mode trunk
+Switch(config-if-range)#
+Switch#
+%SYS-5-CONFIG_I: Configured from console by console
+copy running-config startup-config 
+Destination filename [startup-config]? 
+Building configuration...
+[OK]
 
 Vamos a continuar con los numerales (d) y (e) considerando que estás trabajando con un switch capa 2 con VLANs configuradas.
 
