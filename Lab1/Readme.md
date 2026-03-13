@@ -23,6 +23,10 @@ Switch(config-if-range)#switchport mode access
 Switch(config-if-range)#switchport access vlan 10
 Switch(config-if-range)#interface range fastEthernet 0/3-4
 Switch(config-if-range)#switchport mode access
+Switch(config-if-range)#switchport access vlan 20
+Switch#
+%SYS-5-CONFIG_I: Configured from console by console
+copy running-config startup-config 
 
 
 Switch>enable
@@ -30,7 +34,6 @@ Switch#configure terminal
 Enter configuration commands, one per line.  End with CNTL/Z.
 Switch(config)#interface range fastEthernet 0/24
 Switch(config-if-range)#switchport mode trunk
-Switch(config-if-range)#
 Switch#
 %SYS-5-CONFIG_I: Configured from console by console
 copy running-config startup-config 
