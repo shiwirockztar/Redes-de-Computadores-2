@@ -30,6 +30,7 @@ Switch#
 copy running-config startup-config 
 ```
 
+```bash
 Switch>enable
 Switch#configure terminal
 Enter configuration commands, one per line.  End with CNTL/Z.
@@ -41,6 +42,7 @@ copy running-config startup-config
 Destination filename [startup-config]? 
 Building configuration...
 [OK]
+```
 
 Vamos a continuar con los numerales (d) y (e) considerando que estás trabajando con un switch capa 2 con VLANs configuradas.
 
