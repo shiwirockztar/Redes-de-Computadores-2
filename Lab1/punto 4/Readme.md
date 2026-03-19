@@ -126,8 +126,22 @@ enable
 conf t
 interface fa0/24
 switchport trunk allowed vlan 10,20,30,40
+exit
+end
+copy running-config startup-config 
 ```
 
+🟦 Switch2
+
+```bash
+enable
+conf t
+interface range fastEthernet 0/23-24
+switchport trunk allowed vlan 10,20,30,40
+exit
+end
+copy running-config startup-config 
+```
 ---
 
 🅳 (d) Conectividad + Telnet
