@@ -33,6 +33,8 @@ VLAN 40 → PC6 y PC8 (nueva VLAN)
 🟦 En TODOS los switches
 
 ```bash
+enable
+conf t
 vlan 10
 vlan 20
 vlan 30
@@ -46,9 +48,10 @@ vlan 40
 ```bash
 enable
 conf t
-interface fa0/5
+interface fa0/4
 switchport mode access
 switchport access vlan 40
+copy running-config startup-config
 ```
 
 ---
@@ -56,6 +59,8 @@ switchport access vlan 40
 🟦 Switch3
 
 ```bash
+enable
+conf t
 interface fa0/1   ← PC7
 switchport mode access
 switchport access vlan 30
@@ -101,6 +106,8 @@ Si una trama NO tiene etiqueta (untagged)
 En TODOS los trunks:
 
 ```bash
+enable
+conf t
 interface fa0/24
 switchport mode trunk
 switchport trunk native vlan 40
@@ -115,6 +122,9 @@ switchport trunk native vlan 40
 Sí se puede (y es buena práctica 🔥)
 
 ```bash
+enable
+conf t
+interface fa0/24
 switchport trunk allowed vlan 10,20,30,40
 ```
 
@@ -125,6 +135,8 @@ switchport trunk allowed vlan 10,20,30,40
 Ejemplo Switch1
 
 ```bash
+enable
+conf t
 interface vlan 30
 ip address 192.18.3.1 255.255.255.0
 no shutdown
@@ -133,6 +145,8 @@ no shutdown
 Switch2:
 
 ```bash
+enable
+conf t
 interface vlan 30
 ip address 192.18.3.2 255.255.255.0
 no shutdown
@@ -141,6 +155,8 @@ no shutdown
 Switch3:
 
 ```bash
+enable
+conf t
 interface vlan 30
 ip address 192.18.3.3 255.255.255.0
 no shutdown
@@ -151,6 +167,8 @@ no shutdown
 🔑 Paso 2: Configurar Telnet
 
 ```bash
+enable
+conf t
 line vty 0 4
 password cisco
 login
