@@ -1,0 +1,61 @@
+diseñe una topologia en packet tracer con dos switches 2960
+el switch1 tiene cuatro computadores conectados y un puerto troncal
+fa0/1 vlan 10 pc1 ip 192.18.1.1/24
+fa0/2 vlan 10 pc2 ip 192.18.1.2/24
+fa0/3 vlan 20 pc3 ip 192.18.2.3/24
+fa0/10 vlan 30 pcAdmin no le e asignado ip 
+fa0/24 trunk
+
+
+el switch2 tiene dos computadores conectados y un puerto troncal
+fa0/1 vlan 10 pc4 ip 192.18.1.4/24
+fa0/2 vlan 10 pc2 ip 192.18.2.5/24
+fa0/24 trunk
+
+ahora me piden
+
+los
+computadores 1, 2 y 4 pertenecen a una VLAN y los 3 y 5 a otra VLAN. El computador Admin pertenece a una VLAN distinta a las anteriores, que ser´a la VLAN utilizada para administrar
+remotamente los conmutadores de la topolog´ıa.
+
+(a) Configure inicialmente los puertos tipo acceso. Indique entre cu´ales equipos existe conectividad
+y porque. ¿A qu´e VLAN pertenece el puerto que conecta ambos conmutadores?
+(b) Configure el puerto entre conmutadores para que lleve tr´afico de varias VLAN. Explique c´omo
+se identifica el tr´afico asociado a cada VLAN en dicho enlace.
+(c) Realice un ping entre los equipos 1 y 4. Explique el proceso completo de agregaci´on y remoci´on
+de etiquetas durante el transporte de la trama. Tambi´en explique los procedimientos asociados
+a ARP.
+(d) Revise la tabla de asociaci´on entre MAC y puerto de ambos conmutadores despu´es de probar
+conectividad entre los equipos de las mismas VLAN. ¿Qu´e direcciones MAC est´an asociadas
+al puerto que conecta ambos conmutadores?
+
+pertenece a una VLAN distinta a las anteriores, que ser´a la VLAN utilizada para administrar
+remotamente los conmutadores de la topolog´ıa.
+
+(a) Configure inicialmente los puertos tipo acceso. Indique entre cu´ales equipos existe conectividad
+y porque. ¿A qu´e VLAN pertenece el puerto que conecta ambos conmutadores?
+(b) Configure el puerto entre conmutadores para que lleve tr´afico de varias VLAN. Explique c´omo
+se identifica el tr´afico asociado a cada VLAN en dicho enlace.
+(c) Realice un ping entre los equipos 1 y 4. Explique el proceso completo de agregaci´on y remoci´on
+de etiquetas durante el transporte de la trama. Tambi´en explique los procedimientos asociados
+a ARP.
+(d) Revise la tabla de asociaci´on entre MAC y puerto de ambos conmutadores despu´es de probar
+conectividad entre los equipos de las mismas VLAN. ¿Qu´e direcciones MAC est´an asociadas
+al puerto que conecta ambos conmutadores?
+
+ahora agrego un tercer switch, switch3 conectado a al switch 2 y el switch3 tiene 2 pcs, pc7 y pc8 y al switch1 le agrego un pc el pc6
+
+(a) Cree una nueva VLAN en la topolog´ıa y asocie a dicha VLAN los equipos 6 y 8. Agregue el
+equipo 7 a la VLAN de administraci´on.
+3
+(b) Explique el tratamiento que se debe dar al tr´afico sin etiquetas en los enlaces troncales.
+Consulte la utilidad de la VLAN nativa y se˜nale la diferencia con la VLAN de administraci´on.
+Defina la VLAN a la que pertenecen los equipos 6 y 8 como nativa.
+(c) Consulte la posibilidad de permitir s´olo el tr´afico de algunas VLAN a trav´es de los enlaces troncales. Permita a trav´es de los enlaces troncales solamente las VLAN creadas en la topolog´ıa
+(d) Finalmente, configure lo necesario para garantizar conectividad entre los equipos de la misma
+VLAN. Desde los equipos 7 y Admin se deben administrar a trav´es de telnet todos los conmutadores de la topolog´ıa.
+(e) Se˜nale el camino que sigue una trama que encapsula un ping que va desde el equipo 1 hasta
+la SVI (interfaz de administraci´on) del conmutador 3.
+(f) Se˜nale el camino que sigue una trama que encapsula un ping que va desde el equipo 7 hasta
+la SVI del conmutador 1. Adicionalmente, explique en qu´e partes del recorrido se adiciona o
+se remueve la etiqueta asociada a la VLAN correspondiente.
