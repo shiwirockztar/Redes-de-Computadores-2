@@ -15,6 +15,7 @@ show runnig-confi
 //configuracion de inicio
 configure terminal
 
+```bash
 Switch>enable
 Switch#configure terminal
 Enter configuration commands, one per line.  End with CNTL/Z.
@@ -27,7 +28,7 @@ Switch(config-if-range)#switchport access vlan 20
 Switch#
 %SYS-5-CONFIG_I: Configured from console by console
 copy running-config startup-config 
-
+```
 
 Switch>enable
 Switch#configure terminal
