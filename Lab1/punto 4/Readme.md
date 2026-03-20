@@ -146,7 +146,18 @@ copy running-config startup-config
 
 🅳 (d) Conectividad + Telnet
 🔑 Paso 1: Crear SVI (IP de administración)
+
 Ejemplo Switch1
+
+```bash
+enable
+conf t
+interface vlan 30
+ip address 192.18.3.1 255.255.255.0
+exit
+end
+copy running-config startup-config
+```
 
 ```bash
 enable
