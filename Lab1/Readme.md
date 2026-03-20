@@ -169,3 +169,47 @@ Mayor seguridad.
 El tráfico de gestión no se mezcla con el tráfico de usuarios.
 
 Permite controlar qué equipos pueden administrar el switch.
+
+
+
+
+
+- consulta arp para saber la mac
+
+cuando queremos comunicarnos entre redes diferentes Vlan10 - vlan20 
+primero
+compara con su mascara se da cuenta que no esta en su red
+por la tanto el icmp salle fallido
+
+AL HABILItar el gateWAY QUE ES COMO EL PORTERO DE LA ENTRADA
+YA OBLIGA A HACER PETICIONES ARP
+
+por lo tanto si habilitamos un gateway ahora si podra hacer una intentara hacer una peticion ARP
+a redes externas aunque igualmente como es diferente vlan no podra hacer ping
+
+
+aL LIMPIAR LA TABLA MAC
+
+Switch>
+Switch>ena
+Password: 
+Switch#clear mac
+Switch#clear mac-
+Switch#clear mac-address-table 
+Switch#
+
+SE HACIA 
+
+arp -d
+
+tabla mac diferente a tabla arp
+
+sw
+macPc1 port
+macpc2 port
+
+pc 
+mac - ip Dest
+
+se llena la tabla de mac en el switch conociendo la mac origen
+mac origen - mac destino
