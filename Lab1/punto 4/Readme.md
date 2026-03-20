@@ -149,14 +149,15 @@ copy running-config startup-config
 
 Ejemplo Switch1
 
+
 ```bash
-enable
+ena
 conf t
-interface vlan 30
-ip address 192.18.3.1 255.255.255.0
-exit
+interface vlan 30 
+ip address 192.168.3.3 255.255.255.0
+exit 
 end
-copy running-config startup-config
+copy running-config startup-config 
 ```
 
 ```bash
@@ -191,6 +192,18 @@ no shutdown
 
 🔑 Paso 2: Configurar Telnet
 
+
+```bash
+ena
+conf t
+line vty 0 4
+password 123
+enable password 456
+login
+end
+copy running-config startup-config 
+```
+
 ```bash
 enable
 conf t
@@ -199,6 +212,8 @@ password cisco
 login
 transport input telnet
 ```
+
+
 
 ---
 
