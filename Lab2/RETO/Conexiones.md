@@ -54,9 +54,17 @@ Se amplía la topología original agregando:
 
 ---
 
+
+### 🔹 SW4 ↔ SW5 (doble enlace)
+
+* SW4 Fa0/3 ↔ SW5 Fa0/3
+* SW4 Fa0/4 ↔ SW5 Fa0/4
+
+---
+
 ### 🔹 SW5 ↔ SW2 (enlace simple)
 
-* SW5 Fa0/3 ↔ SW2 Fa0/5
+* SW5 Fa0/5 ↔ SW2 Fa0/5
 
 ---
 
