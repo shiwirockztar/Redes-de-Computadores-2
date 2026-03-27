@@ -1,178 +1,188 @@
-# Configuración de Red con VLANs y Spanning Tree
+# Reto Lab 2: VLANs + STP (PVST)
 
-Este documento describe la configuración de red para una infraestructura segmentada por VLANs, con direccionamiento IP adecuado y la implementación de Spanning Tree Protocol (STP) para asegurar la redundancia y el balanceo de carga entre los switches.
+Este documento resume la configuracion del reto en Packet Tracer para una red con segmentacion por VLANs y redundancia de enlaces, controlada con Spanning Tree Protocol (PVST).
 
-## ✅ (a) VLANs y Direccionamiento
+## 1. Objetivo
 
-### 🔹 Asignación de VLANs
+Implementar una topologia con:
 
-- **VLAN 10 (Administración)**
-  - Dispositivos: PC1, PC4
-  - Interfaces de administración en todos los switches
-- **VLAN 20 (Usuarios)**
-  - Dispositivos: PC2, PC3
+- VLAN 10 para administracion.
+- VLAN 20 para usuarios.
+- Enlaces troncales entre switches.
+- Seleccion controlada de Root Bridge para optimizar STP.
 
-### 🔹 Direccionamiento IP Propuesto
+## 2. VLANs y direccionamiento IP
 
-#### **VLAN 10 (Administración)**
+### VLAN 10 (Administracion)
 
-- **PC1**: 192.168.10.1 /24
-- **PC4**: 192.168.10.2 /24
-- **Switches**:
-  - **SW1**: 192.168.10.11
-  - **SW2**: 192.168.10.12
-  - **SW3**: 192.168.10.13
-  - **SW4**: 192.168.10.14
-  - **SW5**: 192.168.10.15
+| Equipo | IP | Mascara |
+|---|---|---|
+| PC1 | 192.168.10.1 | 255.255.255.0 |
+| PC4 | 192.168.10.2 | 255.255.255.0 |
+| SW1 (SVI VLAN 10) | 192.168.10.11 | 255.255.255.0 |
+| SW2 (SVI VLAN 10) | 192.168.10.12 | 255.255.255.0 |
+| SW3 (SVI VLAN 10) | 192.168.10.13 | 255.255.255.0 |
+| SW4 (SVI VLAN 10) | 192.168.10.14 | 255.255.255.0 |
+| SW5 (SVI VLAN 10) | 192.168.10.15 | 255.255.255.0 |
 
-#### **VLAN 20 (Usuarios)**
+### VLAN 20 (Usuarios)
 
-- **PC2**: 192.168.20.1 /24
-- **PC3**: 192.168.20.2 /24
+| Equipo | IP | Mascara |
+|---|---|---|
+| PC2 | 192.168.20.1 | 255.255.255.0 |
+| PC3 | 192.168.20.2 | 255.255.255.0 |
 
-_Nota:_ Todos los switches tienen ambas VLANs creadas (VLAN 10 y VLAN 20) para garantizar consistencia y permitir STP por VLAN (PVST).
+Nota: todos los switches deben tener creadas ambas VLANs (10 y 20) para mantener consistencia y permitir PVST por VLAN.
 
-🖥️ CONFIGURACIÓN POR SWITCH
-🔵 SW1 SW4
+## 3. Configuracion base por switch
+
+### 3.1 Crear VLANs
+
+```bash
 enable
-conf t
+configure terminal
 vlan 10
-name ADMIN
-interface fa0/10
-switchport mode access
-switchport access vlan 10
-interface vlan 10
-ip address 192.168.10.11 255.255.255.0 #cambia dependiendo del switch 4 -> ip address 192.168.10.14 255.255.255.0
-no shutdown
-exit
-end
-copy running-config startup-config
-
-🔵 SW2 SW3
-enable
-conf t
+ name ADMIN
 vlan 20
-name USERS
-interface fa0/10
-switchport mode access
-switchport access vlan 20
-interface vlan 20
-ip address 192.168.10.11 255.255.255.0
-no shutdown
-exit
+ name USERS
 end
 copy running-config startup-config
+```
 
-🔵 SW5
+### 3.2 Puertos de acceso para PCs
+
+- En switches donde se conecten PCs de administracion (VLAN 10), configurar Fa0/10 como access VLAN 10.
+- En switches donde se conecten PCs de usuarios (VLAN 20), configurar Fa0/10 como access VLAN 20.
+
+Ejemplo (VLAN 10):
+
+```bash
 enable
-conf t
+configure terminal
 interface fa0/10
-switchport mode access
-switchport access vlan 10
+ switchport mode access
+ switchport access vlan 10
+end
+copy running-config startup-config
+```
+
+Ejemplo (VLAN 20):
+
+```bash
+enable
+configure terminal
+interface fa0/10
+ switchport mode access
+ switchport access vlan 20
+end
+copy running-config startup-config
+```
+
+### 3.3 SVI de administracion (VLAN 10)
+
+Configurar la IP de gestion correspondiente en cada switch:
+
+```bash
+enable
+configure terminal
 interface vlan 10
-ip address 192.168.10.15 255.255.255.0
-no shutdown
+ ip address 192.168.10.X 255.255.255.0
+ no shutdown
+end
+copy running-config startup-config
+```
 
-🧑‍💻 CONFIGURACIÓN DE PCs
-🔹 PC1 (en SW4)
-IP: 192.168.10.1
-Máscara: 255.255.255.0
-🔹 PC4 (en SW5)
-IP: 192.168.10.2
-Máscara: 255.255.255.0
-🔹 PC2 (en SW1)
-IP: 192.168.20.1
-Máscara: 255.255.255.0
-🔹 PC3 (en SW2)
-IP: 192.168.20.2
-Máscara: 255.255.255.0
+## 4. Root Bridge (STP)
 
-## ✅ (b) Elección del Root Bridge
-
-### 🔹 Switch Elegido
-
-- **SW3** como Root Bridge
-
-### 🔹 Criterio Técnico
-
-- SW3 es central en la topología.
-- Tiene más enlaces, lo que minimiza el costo total de caminos STP.
-- Reduce puertos bloqueados y optimiza el flujo de tráfico.
-
-### 🔹 Estrategia de Configuración
+Se define **SW3** como Root Bridge para VLAN 10 y VLAN 20 por su posicion central en la topologia.
 
 ```bash
 enable
 configure terminal
 spanning-tree vlan 10 priority 4096
 spanning-tree vlan 20 priority 4096
-exit
+end
 copy running-config startup-config
 ```
 
-🔹 Efecto del Cambio
-La prioridad se aplica inmediatamente en SW3.
-Sin embargo, no se reflejará en la topología de la red hasta que se configuren los trunks, ya que STP necesita intercambio de BPDUs para elegir el Root Bridge global.
+Importante: la prioridad cambia de inmediato en el switch local, pero el arbol STP global se consolida cuando los switches intercambian BPDUs por enlaces troncales activos.
 
-⚠️ Importante: El cambio tiene efecto inmediato a nivel local, pero en la red completa depende de que los switches puedan comunicarse a través de los trunks.
+## 5. Enlaces troncales entre switches
 
-✅ (c) Configuración de Puertos entre Switches
+Todos los enlaces entre switches se configuran como trunk y permitiendo VLAN 10 y 20.
 
-Todos los enlaces entre switches se configuraron como trunks con la siguiente configuración:
-
+```bash
 enable
 configure terminal
 interface range fa0/1 - 8
-switchport mode trunk
-switchport trunk allowed vlan 10,20
-exit
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20
 end
 copy running-config startup-config
+```
 
-No se aplican trunks a los puertos conectados a PCs (fa0/10), que deben permanecer en modo access.
+No aplicar modo trunk a puertos conectados a PCs (por ejemplo Fa0/10).
 
-confirmar
+## 6. Verificacion
+
+Ejecutar en los switches:
+
+```bash
 show spanning-tree vlan 10
 show spanning-tree vlan 20
+show vlan brief
+show interfaces trunk
+```
 
-✅ (d) Spanning Tree Resultante
-🔹 Cantidad de Spanning Tree
-2 STP: uno por cada VLAN (10 y 20).
-Esto se debe a PVST+, que crea un árbol independiente por VLAN.
-🔹 Ventajas
-Balanceo de carga entre enlaces redundantes.
-Mejor aprovechamiento de la topología.
-Posibilidad de tener diferentes Root Bridges por VLAN.
-🔹 Forma del Árbol
-SW3 es el Root Bridge.
-Todos los caminos convergen hacia SW3.
-Los enlaces redundantes quedan en estado blocking según STP.
-✅ (e) Recorrido de Trama: PC1 → SW2 (Administración)
-PC1 (VLAN 10) está conectado a SW4.
-El flujo de la trama será:
-PC1 → SW4 → SW3 (Root Bridge) → SW2 → Interfaz de administración.
+Resultado esperado:
 
-Este recorrido sigue el árbol STP para VLAN 10.
+- 2 arboles STP (uno por VLAN) al usar PVST.
+- SW3 apareciendo como Root Bridge en ambas VLANs.
+- Enlaces redundantes en estado blocking segun el costo STP.
 
-✅ (f) Eliminación del Root Bridge
-Acción
-Cambiar la prioridad de SW3 a un valor mayor o apagarlo:
+## 7. Analisis solicitado
+
+### 7.1 Forma del arbol
+
+- SW3 es el Root Bridge.
+- Los caminos de menor costo convergen hacia SW3.
+- Los enlaces alternos redundantes quedan bloqueados para evitar bucles.
+
+### 7.2 Recorrido de trama (PC1 hacia SW2 en VLAN 10)
+
+Recorrido esperado:
+
+```text
+PC1 -> SW4 -> SW3 (Root) -> SW2
+```
+
+### 7.3 Si se elimina el Root Bridge actual
+
+Accion posible:
+
+```bash
 spanning-tree vlan 10 priority 61440
-Resultado
-El nuevo Root Bridge será el switch con menor prioridad disponible. En caso de empate, el Root será determinado por la menor MAC.
-STP recalcula la topología, ajusta los puertos bloqueados y forma un nuevo árbol.
-✅ (g) Adición de un Nuevo Switch como Root
+```
 
-Antes de conectar el nuevo switch, se configura su prioridad a un valor mínimo:
+o apagar SW3.
 
+Efecto: STP recalcula y el nuevo Root Bridge sera el switch con menor Bridge ID disponible (prioridad y, en empate, MAC).
+
+### 7.4 Agregar un nuevo switch como Root
+
+Antes de conectarlo a la red:
+
+```bash
 spanning-tree vlan 10 priority 0
 spanning-tree vlan 20 priority 0
-Resultado
-Este switch tendrá la menor prioridad y se convertirá en el Root Bridge para ambas VLANs.
-Con Rapid-PVST, se convierte en Root Bridge casi inmediatamente; con STP clásico, puede tardar unos segundos hasta que la topología se ajuste.
-🧠 Conclusión General
-La red está segmentada por VLANs y correctamente direccionada.
-Se implementó STP por VLAN (PVST).
-La selección del Root Bridge en una ubicación central optimiza la topología.
-Los trunks son fundamentales para que STP funcione correctamente.
-STP se adapta dinámicamente ante cambios en el Root Bridge o la incorporación de nuevos switches.
+```
+
+Efecto: ese switch pasa a ser candidato principal a Root Bridge para ambas VLANs.
+
+## 8. Conclusiones
+
+- La red queda segmentada correctamente por VLAN.
+- PVST permite un arbol independiente por cada VLAN.
+- Definir un Root central mejora la eficiencia de rutas STP.
+- Los trunks son indispensables para intercambiar BPDUs y converger.
+- STP responde automaticamente ante cambios de topologia.
