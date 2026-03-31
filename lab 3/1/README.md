@@ -168,6 +168,113 @@ telnet 192.168.99.11
 telnet 192.168.99.12
 telnet 192.168.99.13
 ```
+🧠 ✅ 1. INTERFACES DEL ROUTER 2911
+
+El Cisco 2911 normalmente trae:
+
+GigabitEthernet0/0
+GigabitEthernet0/1
+GigabitEthernet0/2
+
+👉 Usaremos una por cada VLAN (porque NO se permite trunk)
+
+🔌 ✅ 2. CONEXIONES FINALES
+
+Conecta el router al Switch 3 (S3) así:
+
+Router 2911	Switch S3	VLAN
+G0/0	Fa0/10	VLAN 10
+G0/1	Fa0/11	VLAN 20
+G0/2	Fa0/12	VLAN 99
+⚙️ ✅ 3. CONFIGURACIÓN EN S3 (IMPORTANTE)
+enable
+configure terminal
+
+interface fa0/10
+switchport mode access
+switchport access vlan 10
+
+interface fa0/11
+switchport mode access
+switchport access vlan 20
+
+interface fa0/12
+switchport mode access
+switchport access vlan 99
+
+end
+copy running-config startup-config
+🌐 ✅ 4. CONFIGURACIÓN DEL ROUTER (2911)
+enable
+configure terminal
+
+interface g0/0
+ip address 192.168.10.1 255.255.255.0
+no shutdown
+
+interface g0/1
+ip address 192.168.20.1 255.255.255.0
+no shutdown
+
+interface g0/2
+ip address 192.168.99.1 255.255.255.0
+no shutdown
+
+end
+copy running-config startup-config
+💻 ✅ 5. CONFIGURACIÓN DE HOSTS
+PC1 (VLAN 10)
+IP: 192.168.10.10
+Mask: 255.255.255.0
+Gateway: 192.168.10.1
+PC2 (VLAN 20)
+IP: 192.168.20.10
+Mask: 255.255.255.0
+Gateway: 192.168.20.1
+🧩 ✅ 6. SWITCHES (GATEWAY DE ADMINISTRACIÓN)
+
+En S1, S2 y S3:
+
+ip default-gateway 192.168.99.1
+🧠 ✅ 7. RESPUESTA EXACTA PARA EL INFORME
+
+Puedes copiar algo así:
+
+✔ ¿Es necesario configurar gateway por defecto?
+
+Sí, es necesario configurar gateway por defecto en los computadores y en los switches, pero no en el router.
+
+Computadores: requieren gateway para comunicarse con otras VLANs.
+Switches: requieren gateway para permitir la administración remota (Telnet) desde otras redes.
+Router: no requiere gateway porque todas las redes están directamente conectadas a sus interfaces.
+✔ Nodo que cumple la función de gateway
+
+El router (Cisco 2911) actúa como gateway para todas las VLANs:
+
+VLAN 10 → 192.168.10.1
+VLAN 20 → 192.168.20.1
+VLAN 99 → 192.168.99.1
+🧪 ✅ 8. VERIFICACIÓN FINAL
+
+En el router:
+
+show ip interface brief
+
+Debe quedar:
+
+G0/0  192.168.10.1  up up
+G0/1  192.168.20.1  up up
+G0/2  192.168.99.1  up up
+🚀 🎯 CON ESTO YA CUMPLES EL NUMERAL (a)
+
+Si algo no te hace ping:
+
+👉 casi siempre es:
+
+VLAN mal asignada
+Gateway mal puesto
+Puerto apagado (shutdown)
+
 
 ## b) Gateway por defecto y nodo que cumple esa funcion
 
