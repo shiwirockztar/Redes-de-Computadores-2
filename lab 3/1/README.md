@@ -153,12 +153,12 @@ Camino completo de un paquete desde un computador hasta la interfaz virtual del 
 Supuesto de ejemplo:
 
 - Origen: PC1 en VLAN 10.
-- Destino: SVI del switch en VLAN 99 (ejemplo 192.168.99.11).
+- Destino: SVI de S2 en VLAN 99 (ejemplo 192.168.99.3).
 
 ### 3.1 Proceso detallado capa 3 y capa 2
 
-1. PC1 genera un ICMP Echo Request con destino 192.168.99.11.
-2. PC1 revisa su mascara y detecta que 192.168.99.11 no esta en su red local 192.168.10.0/24.
+1. PC1 genera un ICMP Echo Request con destino 192.168.99.3.
+2. PC1 revisa su mascara y detecta que 192.168.99.3 no esta en su red local 192.168.10.0/24.
 3. PC1 consulta su tabla de enrutamiento local y usa su ruta por defecto hacia 192.168.10.1.
 4. Si PC1 no conoce la MAC del gateway, envia ARP Request en VLAN 10 preguntando por 192.168.10.1.
 5. El router responde ARP Reply con la MAC de su interfaz en VLAN 10.
@@ -166,10 +166,10 @@ Supuesto de ejemplo:
 7. El switch reenvia la trama dentro de VLAN 10 hasta el puerto access que conecta al router para esa VLAN (sin etiqueta 802.1Q en ese enlace, por ser access).
 8. El router recibe la trama, desencapsula, analiza el paquete IP y busca en su tabla de enrutamiento.
 9. El router determina que la red 192.168.99.0/24 esta conectada directamente por su interfaz de VLAN 99.
-10. Si no conoce la MAC de la SVI destino o del equipo de gestion correspondiente, hace ARP en VLAN 99.
+10. Si no conoce la MAC de 192.168.99.3, el router hace ARP en VLAN 99 y S2 responde con la MAC de su SVI.
 11. El router reencapsula y envia el paquete por su interfaz fisica de VLAN 99 hacia el switch.
-12. El switch entrega el paquete a su proceso interno de SVI VLAN 99 y responde con ICMP Echo Reply.
-13. La respuesta regresa por el camino inverso, usando nuevamente ARP y tabla de enrutamiento cuando aplique.
+12. El switch entrega el paquete a la SVI VLAN 99 de S2.
+13. La respuesta ICMP Echo Reply regresa por el camino inverso, repitiendo el mismo principio de capa 2 y capa 3.
 
 Nota sobre 802.1Q en este numeral:
 
@@ -224,6 +224,10 @@ end
 copy running-config startup-config
 ```
 
+Nota de equivalencia con tu guia:
+
+- Si en tu topologia el router usa FastEthernet, la configuracion es la misma cambiando el nombre de la interfaz (por ejemplo fa0/0.10, fa0/0.20, fa0/0.99).
+
 ---
 
 ## 5. Numeral (d)
@@ -233,11 +237,11 @@ Camino completo de un paquete desde un computador hasta la interfaz virtual del 
 Supuesto de ejemplo:
 
 - Origen: PC1 en VLAN 10.
-- Destino: SVI de gestion en VLAN 99.
+- Destino: SVI de gestion en VLAN 99 (ejemplo 192.168.99.3).
 
 ### 5.1 Proceso detallado capa 3 y capa 2
 
-1. PC1 crea un ICMP Echo Request hacia la IP de la SVI en VLAN 99.
+1. PC1 crea un ICMP Echo Request hacia 192.168.99.3.
 2. PC1 detecta que el destino esta en otra red y decide enviar al gateway 192.168.10.1.
 3. Si no tiene la MAC del gateway, ejecuta ARP en VLAN 10.
 4. El router responde por su subinterfaz g0/0.10 y PC1 arma la trama con MAC destino del gateway.
@@ -249,6 +253,19 @@ Supuesto de ejemplo:
 10. El router envia la nueva trama por el mismo enlace fisico, ahora etiquetada con 802.1Q VLAN 99.
 11. El switch recibe la trama trunk, identifica VLAN 99 y la entrega a la SVI de gestion.
 12. La respuesta ICMP Echo Reply vuelve por el camino inverso con el mismo principio: switching L2 por VLAN y enrutamiento L3 en el router.
+
+### 5.2 Conclusiones clave (b, c y d)
+
+- Sin router no hay comunicacion entre VLANs.
+- El router es el gateway de toda la red en ambos escenarios (interfaces fisicas separadas o router-on-a-stick).
+- Las VLAN separan dominios de broadcast.
+- 802.1Q permite transportar multiples VLAN en un mismo enlace trunk.
+- El enrutamiento inter-VLAN lo realiza el router.
+- La SVI de gestion permite administracion remota (por ejemplo, Telnet).
+
+Frase clave tipo examen:
+
+"La conectividad total entre equipos en diferentes VLANs se logra unicamente mediante un dispositivo de capa 3 (router), el cual actua como gateway y permite el enrutamiento entre redes, ya sea usando interfaces fisicas o mediante router-on-a-stick con encapsulacion 802.1Q."
 
 ---
 
