@@ -267,28 +267,65 @@ Camino completo de un paquete desde un computador hasta la interfaz virtual del 
 Supuesto de ejemplo:
 
 - Origen: PC1 en VLAN 10.
-- Destino: SVI de S2 en VLAN 99 (ejemplo 192.168.99.3).
+- Destino: SVI de S2 en VLAN 99 (192.168.99.12).
+
+Camino general del paquete:
+
+PC1 -> S1 -> S3 -> Router -> S3 -> S2 -> Interfaz VLAN 99 (SVI)
+
+Punto clave del escenario:
+
+- Al cambiar de VLAN, el trafico debe pasar por el router.
+- Como el destino es una direccion de administracion, el trafico termina en una SVI.
 
 ### 3.1 Proceso detallado capa 3 y capa 2
 
-1. PC1 genera un ICMP Echo Request con destino 192.168.99.3.
-2. PC1 revisa su mascara y detecta que 192.168.99.3 no esta en su red local 192.168.10.0/24.
-3. PC1 consulta su tabla de enrutamiento local y usa su ruta por defecto hacia 192.168.10.1.
-4. Si PC1 no conoce la MAC del gateway, envia ARP Request en VLAN 10 preguntando por 192.168.10.1.
-5. El router responde ARP Reply con la MAC de su interfaz en VLAN 10.
-6. PC1 encapsula el ICMP en una trama Ethernet con MAC destino del router y la envia por su puerto access VLAN 10.
-7. El switch reenvia la trama dentro de VLAN 10 hasta el puerto access que conecta al router para esa VLAN (sin etiqueta 802.1Q en ese enlace, por ser access).
-8. El router recibe la trama, desencapsula, analiza el paquete IP y busca en su tabla de enrutamiento.
-9. El router determina que la red 192.168.99.0/24 esta conectada directamente por su interfaz de VLAN 99.
-10. Si no conoce la MAC de 192.168.99.3, el router hace ARP en VLAN 99 y S2 responde con la MAC de su SVI.
-11. El router reencapsula y envia el paquete por su interfaz fisica de VLAN 99 hacia el switch.
-12. El switch entrega el paquete a la SVI VLAN 99 de S2.
-13. La respuesta ICMP Echo Reply regresa por el camino inverso, repitiendo el mismo principio de capa 2 y capa 3.
+1. PC1 quiere enviar trafico a 192.168.99.12.
+2. PC1 compara esa IP con su red local 192.168.10.0/24 y detecta que el destino esta en otra red.
+3. PC1 decide enviar el paquete a su gateway por defecto: 192.168.10.1.
+4. Si PC1 no conoce la MAC del gateway, envia ARP Request (broadcast) en VLAN 10 preguntando por 192.168.10.1.
+5. El router responde con ARP Reply y su direccion MAC para VLAN 10.
+6. PC1 encapsula y envia el paquete al router:
 
-Nota sobre 802.1Q en este numeral:
+	- Capa 3 (IP): origen 192.168.10.10, destino 192.168.99.12.
+	- Capa 2 (Ethernet): MAC origen PC1, MAC destino router.
 
-- En el tramo switch-router del numeral (a) no hay etiqueta 802.1Q, porque los enlaces al router son access.
-- La etiqueta 802.1Q aparece en enlaces trunk entre switches si esos enlaces transportan varias VLAN.
+7. Entre switches (S1, S3 y S2) el trafico de enlaces troncales se transporta con 802.1Q, etiquetando la VLAN correspondiente.
+8. El router recibe la trama por su interfaz de VLAN 10, quita la encapsulacion de capa 2 y revisa el destino IP 192.168.99.12.
+9. El router consulta su tabla de enrutamiento y determina que 192.168.99.0/24 esta conectada directamente por su interfaz hacia VLAN 99.
+10. Si el router no conoce la MAC de 192.168.99.12, realiza ARP en VLAN 99; S2 responde con la MAC de su SVI.
+11. El router reencapsula el paquete para VLAN 99:
+
+	- Capa 3 (IP): origen 192.168.10.10, destino 192.168.99.12.
+	- Capa 2 (Ethernet): MAC origen router, MAC destino S2.
+
+12. El paquete llega a la interfaz VLAN 99 de S2, donde se procesa.
+13. Si la prueba es ping, S2 responde con ICMP Echo Reply y el trafico vuelve por el camino inverso.
+
+### 3.2 Resumen para entrega
+
+Camino del paquete:
+
+PC -> Switch de acceso -> Switch de distribucion -> Router -> Switch -> SVI destino.
+
+Procesos de capa 3:
+
+- El host detecta red remota y usa su puerta de enlace predeterminada.
+- Las IP origen/destino se mantienen durante el trayecto: 192.168.10.10 -> 192.168.99.12.
+- El router consulta su tabla de enrutamiento y reenvia por la interfaz de la red destino.
+- En pruebas de conectividad se usa ICMP (Echo Request / Echo Reply).
+
+Procesos de capa 2:
+
+- ARP inicial para resolver la MAC del gateway.
+- Reenvio por switches segun VLAN.
+- Uso de 802.1Q en enlaces trunk para identificar trafico de VLAN.
+- Nuevo ARP del router en VLAN 99 para resolver la MAC de la SVI destino.
+- Reencapsulacion con nuevas MAC en cada salto de capa 3.
+
+Frase clave:
+
+"Cada salto implica cambio de encapsulamiento de capa 2, mientras que la direccion IP se mantiene constante durante todo el recorrido."
 
 ---
 
