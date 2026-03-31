@@ -78,6 +78,32 @@ end
 copy running-config startup-config
 ```
 
+### 2.4 Configuracion de hosts
+
+PC1 (VLAN 10):
+
+| Campo | Valor |
+| --- | --- |
+| IP | 192.168.10.10 |
+| Mascara | 255.255.255.0 |
+| Gateway | 192.168.10.1 |
+
+PC2 (VLAN 20):
+
+| Campo | Valor |
+| --- | --- |
+| IP | 192.168.20.10 |
+| Mascara | 255.255.255.0 |
+| Gateway | 192.168.20.1 |
+
+### 2.5 Switches (gateway de administracion)
+
+En S1, S2 y S3:
+
+```bash
+ip default-gateway 192.168.99.1
+```
+
 ---
 
 ## 3. Numeral (b)
