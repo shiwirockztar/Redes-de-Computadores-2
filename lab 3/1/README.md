@@ -104,6 +104,46 @@ En S1, S2 y S3:
 ip default-gateway 192.168.99.1
 ```
 
+### 2.6 Acceso remoto por Telnet (VTY)
+
+En los switches administrables (S1, S2 y S3):
+
+```bash
+enable
+configure terminal
+line vty 0 4
+ password cisco
+ login
+end
+copy running-config startup-config
+```
+
+### 2.7 Pruebas sugeridas (despues de configurar Telnet)
+
+```bash
+ping 192.168.20.10
+ping 192.168.99.11
+telnet 192.168.99.11
+telnet 192.168.99.12
+telnet 192.168.99.13
+```
+
+### 2.8 Verificacion final (escenario inicial)
+
+En el router:
+
+```bash
+show ip interface brief
+```
+
+Esperado (numeral a, con interfaces fisicas separadas):
+
+```text
+G0/0  192.168.10.1  up up
+G0/1  192.168.20.1  up up
+G0/2  192.168.99.1  up up
+```
+
 ---
 
 ## 3. Numeral (b)
@@ -214,7 +254,7 @@ Supuesto de ejemplo:
 
 ## 6. Verificacion recomendada
 
-Comandos utiles:
+### 6.1 Comandos utiles
 
 ```bash
 show ip interface brief
@@ -224,13 +264,7 @@ show ip route
 show arp
 ```
 
-Pruebas minimas:
-
-```bash
-ping 192.168.20.10
-ping 192.168.99.11
-telnet 192.168.99.11
-```
+Si se implemento el numeral (c), en este comando se esperan subinterfaces activas en una sola interfaz fisica (router-on-a-stick).
 
 ---
 
