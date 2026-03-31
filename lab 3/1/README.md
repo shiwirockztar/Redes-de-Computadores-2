@@ -1,8 +1,192 @@
 # Laboratorio 3 - Punto 1
 
+🧠 📌 Contexto clave del ejercicio PC1 → VLAN 10 PC2 → VLAN 20 VLAN 99 → Administración (SVI en switches) Solo 1 interfaz VLAN por switch (SVI) Se requiere conectividad total → esto SOLO se logra cuando entra el router
+
+🔹 1. Situación inicial (SIN router)
+PC1 → VLAN 10
+PC2 → VLAN 20
+VLAN 99 → administración (SVI en switches)
+
+👉 En este estado:
+
+❌ NO hay conectividad entre VLANs
+Porque:
+
+Los switches operan en capa 2
+Las VLANs aíslan el tráfico
+
+✔ Solo hay comunicación dentro de la misma VLAN
+(a): inclusión del router usando interfaces ACCESS
+📌 Diseño
+
+Como no se permite trunk, se implementa:
+
+👉 Una interfaz física del router por cada VLAN
+
+VLAN	Red	Interfaz Router
+VLAN 10	192.168.10.0/24	Fa0/0
+VLAN 20	192.168.20.0/24	Fa0/1
+VLAN 99	192.168.99.0/24	Fa1/0
+
+🔹 3. Procedimiento de configuración
+✅ 3.1 Configuración en TODOS los switches
+🔸 Crear VLANs
+
+```bash
+enable
+configure terminal
+vlan 10
+name VLAN10
+vlan 20
+name VLAN20
+vlan 99
+name ADMIN
+end
+copy running-config startup-config
+```
+
+🔸 Configuración de puertos de acceso a VLAN
+
+En S1 (PC1)
+
+enable
+configure terminal
+interface fa0/1
+switchport mode access
+switchport access vlan 10
+end
+copy running-config startup-config
+
+En S2 (PC2)
+
+enable
+configure terminal
+interface fa0/1
+switchport mode access
+switchport access vlan 20
+end
+copy running-config startup-config
+
+3.3 Enlaces entre switches (TRUNK)
+
+enable
+configure terminal
+interface fa0/2
+switchport mode trunk
+interface fa0/3
+switchport mode trunk
+end
+copy running-config startup-config
+
+
+3.4 VLAN de administración (SVI)
+
+⚠️ SOLO UNA interfaz VLAN por switch (como pide el ejercicio)
+
+S1
+
+enable
+configure terminal
+interface vlan 99
+ip address 192.168.99.11 255.255.255.0
+no shutdown
+end
+copy running-config startup-config
+
+S2
+
+enable
+configure terminal
+interface vlan 99
+ip address 192.168.99.12 255.255.255.0
+ip default-gateway 192.168.99.1
+no shutdown
+end
+copy running-config startup-config
+
+
+S3
+
+enable
+configure terminal
+interface vlan 99
+ip address 192.168.99.13 255.255.255.0
+no shutdown
+end
+copy running-config startup-config
+
+
 ## a) Gateway por defecto y nodo que cumple la función
 
 En esta topología no existe ningún dispositivo de capa 3 que realice funciones de enrutamiento entre VLAN.
+
+🔹 3.6 Puertos switch → router (ACCESS)
+📍 En cada switch conectar así:
+VLAN 10 → puerto hacia Fa0/0 del router
+VLAN 20 → puerto hacia Fa0/1
+VLAN 99 → puerto hacia Fa1/0
+
+Ejemplo:
+
+interface fa0/x
+switchport mode access
+switchport access vlan 10
+
+(ajustar según conexión física)
+
+🔐 🔹 3.7 Configuración de Telnet (OBLIGATORIO)
+
+En cada switch:
+
+enable
+configure terminal
+
+line vty 0 4
+password cisco
+login
+
+end
+🧪 🔹 4. Pruebas
+✔ Desde PC1:
+ping 192.168.20.10
+ping 192.168.99.11
+✔ Telnet:
+telnet 192.168.99.11
+telnet 192.168.99.12
+telnet 192.168.99.13
+🧠 🔹 5. Explicación teórica (lo que te piden)
+✔ ¿Se necesita gateway?
+✔ PCs → SÍ necesitan gateway
+✔ Switches → SÍ (para administración)
+❌ Router → NO necesita
+✔ ¿Quién es el gateway?
+
+👉 El router
+
+192.168.10.1 → VLAN 10
+192.168.20.1 → VLAN 20
+192.168.99.1 → VLAN 99
+✔ ¿Por qué?
+
+Porque el router:
+
+Opera en capa 3
+Conecta dominios de broadcast distintos
+Usa su tabla de enrutamiento
+🚨 🔹 6. Errores comunes (muy importante)
+
+❌ No poner ip default-gateway en switches
+❌ Apagar interfaces del router
+❌ No asignar VLAN correcta a puertos
+❌ Olvidar no shutdown en SVI
+❌ Usar trunk hacia router (NO permitido aquí)
+
+🎯 🔹 7. Resultado final esperado
+
+✔ PC1 ↔ PC2 → comunicación OK
+✔ PCs ↔ switches → Telnet OK
+✔ Switches ↔ router → OK
+✔ Toda la red interconectada
 
 ### ¿Es necesario configurar gateway por defecto?
 
