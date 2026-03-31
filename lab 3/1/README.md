@@ -15,7 +15,29 @@ Por lo tanto, para comunicar redes diferentes (VLAN 10, 20 y 99) se necesita un 
 
 Inicialmente se conecta el switch al router usando solo puertos access (una interfaz fisica del router por VLAN).
 
-### 2.1 Direccionamiento y gateways
+### 2.1 Diseno
+
+En este escenario se usa una interfaz fisica del router por cada VLAN.
+
+### 2.2 Interfaces del router Cisco 2911
+
+Normalmente:
+
+- GigabitEthernet0/0
+- GigabitEthernet0/1
+- GigabitEthernet0/2
+
+Se puede conectar una por VLAN (porque no se permite trunk en este escenario).
+
+### 2.3 Conexion sugerida (router conectado a S3)
+
+| Router 2911 | Switch S3 | VLAN |
+| --- | --- | --- |
+| G0/0 | Fa0/10 | VLAN 10 |
+| G0/1 | Fa0/11 | VLAN 20 |
+| G0/2 | Fa0/12 | VLAN 99 |
+
+### 2.4 Direccionamiento y gateways
 
 | VLAN | Red | Gateway en el router |
 | --- | --- | --- |
@@ -23,7 +45,7 @@ Inicialmente se conecta el switch al router usando solo puertos access (una inte
 | 20 | 192.168.20.0/24 | 192.168.20.1 |
 | 99 | 192.168.99.0/24 | 192.168.99.1 |
 
-### 2.2 Explicacion solicitada
+### 2.5 Explicacion solicitada
 
 Si es necesario configurar gateway por defecto en los computadores y en los switches de gestion.
 
@@ -36,7 +58,125 @@ Nodo que cumple la funcion de gateway:
 - El router es el gateway de la topologia.
 - Cada interfaz del router asociada a una VLAN es la puerta de enlace de esa VLAN.
 
-### 2.3 Configuracion base (escenario con interfaces access)
+### 2.6 Configuracion base en switches
+
+```bash
+enable
+configure terminal
+vlan 10
+ name VLAN10
+vlan 20
+ name VLAN20
+vlan 99
+ name ADMIN
+end
+copy running-config startup-config
+```
+
+### 2.7 Puertos de acceso para hosts
+
+S1 (PC1 en VLAN 10):
+
+```bash
+enable
+configure terminal
+interface fa0/1
+ switchport mode access
+ switchport access vlan 10
+end
+copy running-config startup-config
+```
+
+S2 (PC2 en VLAN 20):
+
+```bash
+enable
+configure terminal
+interface fa0/1
+ switchport mode access
+ switchport access vlan 20
+end
+copy running-config startup-config
+```
+
+### 2.8 Enlaces entre switches (trunk)
+
+```bash
+enable
+configure terminal
+interface fa0/2
+ switchport mode trunk
+interface fa0/3
+ switchport mode trunk
+end
+copy running-config startup-config
+```
+
+### 2.9 SVI de administracion (VLAN 99)
+
+S1:
+
+```bash
+enable
+configure terminal
+interface vlan 99
+ ip address 192.168.99.11 255.255.255.0
+ no shutdown
+exit
+ip default-gateway 192.168.99.1
+end
+copy running-config startup-config
+```
+
+S2:
+
+```bash
+enable
+configure terminal
+interface vlan 99
+ ip address 192.168.99.12 255.255.255.0
+ no shutdown
+exit
+ip default-gateway 192.168.99.1
+end
+copy running-config startup-config
+```
+
+S3:
+
+```bash
+enable
+configure terminal
+interface vlan 99
+ ip address 192.168.99.13 255.255.255.0
+ no shutdown
+exit
+ip default-gateway 192.168.99.1
+end
+copy running-config startup-config
+```
+
+### 2.10 Puertos de S3 hacia el router (access)
+
+```bash
+enable
+configure terminal
+interface fa0/10
+ switchport mode access
+ switchport access vlan 10
+
+interface fa0/11
+ switchport mode access
+ switchport access vlan 20
+
+interface fa0/12
+ switchport mode access
+ switchport access vlan 99
+end
+copy running-config startup-config
+```
+
+### 2.11 Router (una interfaz por VLAN)
 
 Router (una interfaz por VLAN):
 
@@ -58,27 +198,7 @@ end
 copy running-config startup-config
 ```
 
-Switch conectado al router (puertos access):
-
-```bash
-enable
-configure terminal
-interface fa0/10
- switchport mode access
- switchport access vlan 10
-
-interface fa0/11
- switchport mode access
- switchport access vlan 20
-
-interface fa0/12
- switchport mode access
- switchport access vlan 99
-end
-copy running-config startup-config
-```
-
-### 2.4 Configuracion de hosts
+### 2.12 Configuracion de hosts
 
 PC1 (VLAN 10):
 
@@ -96,15 +216,7 @@ PC2 (VLAN 20):
 | Mascara | 255.255.255.0 |
 | Gateway | 192.168.20.1 |
 
-### 2.5 Switches (gateway de administracion)
-
-En S1, S2 y S3:
-
-```bash
-ip default-gateway 192.168.99.1
-```
-
-### 2.6 Acceso remoto por Telnet (VTY)
+### 2.13 Acceso remoto por Telnet (VTY)
 
 En los switches administrables (S1, S2 y S3):
 
@@ -118,7 +230,7 @@ end
 copy running-config startup-config
 ```
 
-### 2.7 Pruebas sugeridas (despues de configurar Telnet)
+### 2.14 Pruebas sugeridas (despues de configurar Telnet)
 
 ```bash
 ping 192.168.20.10
@@ -128,7 +240,7 @@ telnet 192.168.99.12
 telnet 192.168.99.13
 ```
 
-### 2.8 Verificacion final (escenario inicial)
+### 2.15 Verificacion final (escenario inicial)
 
 En el router:
 
