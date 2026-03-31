@@ -224,7 +224,7 @@ En los switches administrables (S1, S2 y S3):
 enable
 configure terminal
 line vty 0 4
- password cisco
+ password 123
  login
 end
 copy running-config startup-config
