@@ -1,165 +1,44 @@
 # Laboratorio 3 - Punto 1
 
-## 1. Contexto
+## 1. Contexto general
 
-- PC1 en VLAN 10.
-- PC2 en VLAN 20.
-- VLAN 99 para administracion de switches (SVI).
-- Los switches son de capa 2.
+- PC1 esta en VLAN 10.
+- PC2 esta en VLAN 20.
+- La administracion de switches usa VLAN 99 (SVI de gestion).
+- Los switches del escenario son capa 2.
 
-Sin un equipo de capa 3, no hay comunicacion entre VLANs.
+Por lo tanto, para comunicar redes diferentes (VLAN 10, 20 y 99) se necesita un equipo de capa 3, en este caso el router.
 
 ---
 
-## 2. Apartado (a): Router usando interfaces access (sin trunk al router)
+## 2. Numeral (a)
 
-### 2.1 Diseno
+Inicialmente se conecta el switch al router usando solo puertos access (una interfaz fisica del router por VLAN).
 
-En este escenario se usa una interfaz fisica del router por cada VLAN.
+### 2.1 Direccionamiento y gateways
 
-| VLAN | Red | Gateway (Router) |
+| VLAN | Red | Gateway en el router |
 | --- | --- | --- |
 | 10 | 192.168.10.0/24 | 192.168.10.1 |
 | 20 | 192.168.20.0/24 | 192.168.20.1 |
 | 99 | 192.168.99.0/24 | 192.168.99.1 |
 
-### 2.2 Interfaces del router Cisco 2911
+### 2.2 Explicacion solicitada
 
-Normalmente:
+Si es necesario configurar gateway por defecto en los computadores y en los switches de gestion.
 
-- GigabitEthernet0/0
-- GigabitEthernet0/1
-- GigabitEthernet0/2
+- Computadores: necesitan gateway por defecto para enviar trafico a redes remotas (otras VLAN).
+- Switches capa 2: usan ip default-gateway para poder ser administrados desde otra red.
+- Router: no requiere gateway por defecto para enrutar entre sus redes directamente conectadas.
 
-Se puede conectar una por VLAN (porque no se permite trunk).
+Nodo que cumple la funcion de gateway:
 
-### 2.3 Conexion sugerida (router conectado a S3)
+- El router es el gateway de la topologia.
+- Cada interfaz del router asociada a una VLAN es la puerta de enlace de esa VLAN.
 
-| Router 2911 | Switch S3 | VLAN |
-| --- | --- | --- |
-| G0/0 | Fa0/10 | VLAN 10 |
-| G0/1 | Fa0/11 | VLAN 20 |
-| G0/2 | Fa0/12 | VLAN 99 |
+### 2.3 Configuracion base (escenario con interfaces access)
 
-### 2.4 Configuracion base en switches
-
-```bash
-enable
-configure terminal
-vlan 10
- name VLAN10
-vlan 20
- name VLAN20
-vlan 99
- name ADMIN
-end
-copy running-config startup-config
-```
-
-### 2.5 Puertos de acceso para hosts
-
-S1 (PC1 en VLAN 10):
-
-```bash
-enable
-configure terminal
-interface fa0/1
- switchport mode access
- switchport access vlan 10
-end
-copy running-config startup-config
-```
-
-S2 (PC2 en VLAN 20):
-
-```bash
-enable
-configure terminal
-interface fa0/1
- switchport mode access
- switchport access vlan 20
-end
-copy running-config startup-config
-```
-
-### 2.6 Enlaces entre switches (trunk)
-
-```bash
-enable
-configure terminal
-interface fa0/2
- switchport mode trunk
-interface fa0/3
- switchport mode trunk
-end
-copy running-config startup-config
-```
-
-### 2.7 SVI de administracion (VLAN 99)
-
-S1:
-
-```bash
-enable
-configure terminal
-interface vlan 99
- ip address 192.168.99.11 255.255.255.0
- no shutdown
-exit
-ip default-gateway 192.168.99.1
-end
-copy running-config startup-config
-```
-
-S2:
-
-```bash
-enable
-configure terminal
-interface vlan 99
- ip address 192.168.99.12 255.255.255.0
- no shutdown
-exit
-ip default-gateway 192.168.99.1
-end
-copy running-config startup-config
-```
-
-S3:
-
-```bash
-enable
-configure terminal
-interface vlan 99
- ip address 192.168.99.13 255.255.255.0
- no shutdown
-exit
-ip default-gateway 192.168.99.1
-end
-copy running-config startup-config
-```
-
-### 2.8 Puertos de S3 hacia el router (access)
-
-```bash
-enable
-configure terminal
-interface fa0/10
- switchport mode access
- switchport access vlan 10
-
-interface fa0/11
- switchport mode access
- switchport access vlan 20
-
-interface fa0/12
- switchport mode access
- switchport access vlan 99
-end
-copy running-config startup-config
-```
-
-### 2.9 Router (una interfaz por VLAN)
+Router (una interfaz por VLAN):
 
 ```bash
 enable
@@ -179,145 +58,160 @@ end
 copy running-config startup-config
 ```
 
-### 2.10 Hosts
-
-- PC1 (VLAN 10): IP 192.168.10.10 /24, GW 192.168.10.1
-- PC2 (VLAN 20): IP 192.168.20.10 /24, GW 192.168.20.1
-
-### 2.11 Telnet en switches
+Switch conectado al router (puertos access):
 
 ```bash
 enable
 configure terminal
-line vty 0 4
- password cisco
- login
+interface fa0/10
+ switchport mode access
+ switchport access vlan 10
+
+interface fa0/11
+ switchport mode access
+ switchport access vlan 20
+
+interface fa0/12
+ switchport mode access
+ switchport access vlan 99
 end
 copy running-config startup-config
 ```
 
-### 2.12 Pruebas sugeridas
+---
+
+## 3. Numeral (b)
+
+Camino completo de un paquete desde un computador hasta la interfaz virtual del switch (SVI), en el escenario del numeral (a) con puertos access al router.
+
+Supuesto de ejemplo:
+
+- Origen: PC1 en VLAN 10.
+- Destino: SVI del switch en VLAN 99 (ejemplo 192.168.99.11).
+
+### 3.1 Proceso detallado capa 3 y capa 2
+
+1. PC1 genera un ICMP Echo Request con destino 192.168.99.11.
+2. PC1 revisa su mascara y detecta que 192.168.99.11 no esta en su red local 192.168.10.0/24.
+3. PC1 consulta su tabla de enrutamiento local y usa su ruta por defecto hacia 192.168.10.1.
+4. Si PC1 no conoce la MAC del gateway, envia ARP Request en VLAN 10 preguntando por 192.168.10.1.
+5. El router responde ARP Reply con la MAC de su interfaz en VLAN 10.
+6. PC1 encapsula el ICMP en una trama Ethernet con MAC destino del router y la envia por su puerto access VLAN 10.
+7. El switch reenvia la trama dentro de VLAN 10 hasta el puerto access que conecta al router para esa VLAN (sin etiqueta 802.1Q en ese enlace, por ser access).
+8. El router recibe la trama, desencapsula, analiza el paquete IP y busca en su tabla de enrutamiento.
+9. El router determina que la red 192.168.99.0/24 esta conectada directamente por su interfaz de VLAN 99.
+10. Si no conoce la MAC de la SVI destino o del equipo de gestion correspondiente, hace ARP en VLAN 99.
+11. El router reencapsula y envia el paquete por su interfaz fisica de VLAN 99 hacia el switch.
+12. El switch entrega el paquete a su proceso interno de SVI VLAN 99 y responde con ICMP Echo Reply.
+13. La respuesta regresa por el camino inverso, usando nuevamente ARP y tabla de enrutamiento cuando aplique.
+
+Nota sobre 802.1Q en este numeral:
+
+- En el tramo switch-router del numeral (a) no hay etiqueta 802.1Q, porque los enlaces al router son access.
+- La etiqueta 802.1Q aparece en enlaces trunk entre switches si esos enlaces transportan varias VLAN.
+
+---
+
+## 4. Numeral (c)
+
+Se eliminan las conexiones previas switch-router y se migra a una unica interfaz fisica entre switch y router (router-on-a-stick).
+
+### 4.1 Cambios necesarios
+
+- Dejar un solo enlace fisico entre switch y router.
+- Configurar ese puerto del switch en modo trunk.
+- Crear subinterfaces en el router, una por VLAN, con encapsulacion dot1Q.
+
+### 4.2 Configuracion de referencia
+
+Switch (puerto hacia el router):
+
+```bash
+enable
+configure terminal
+interface fa0/24
+ switchport mode trunk
+end
+copy running-config startup-config
+```
+
+Router (subinterfaces):
+
+```bash
+enable
+configure terminal
+interface g0/0
+ no shutdown
+
+interface g0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+
+interface g0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+
+interface g0/0.99
+ encapsulation dot1Q 99
+ ip address 192.168.99.1 255.255.255.0
+end
+copy running-config startup-config
+```
+
+---
+
+## 5. Numeral (d)
+
+Camino completo de un paquete desde un computador hasta la interfaz virtual del switch (SVI), ahora en el escenario del numeral (c) con un unico enlace trunk switch-router.
+
+Supuesto de ejemplo:
+
+- Origen: PC1 en VLAN 10.
+- Destino: SVI de gestion en VLAN 99.
+
+### 5.1 Proceso detallado capa 3 y capa 2
+
+1. PC1 crea un ICMP Echo Request hacia la IP de la SVI en VLAN 99.
+2. PC1 detecta que el destino esta en otra red y decide enviar al gateway 192.168.10.1.
+3. Si no tiene la MAC del gateway, ejecuta ARP en VLAN 10.
+4. El router responde por su subinterfaz g0/0.10 y PC1 arma la trama con MAC destino del gateway.
+5. PC1 envia la trama sin etiqueta al switch por puerto access VLAN 10.
+6. Al salir del switch por el enlace trunk hacia el router, la trama se marca con etiqueta 802.1Q VLAN 10.
+7. El router recibe la trama etiquetada, la asocia a la subinterfaz g0/0.10, desencapsula y revisa la cabecera IP.
+8. Usando su tabla de enrutamiento, el router decide reenviar hacia la red 192.168.99.0/24 por la subinterfaz g0/0.99.
+9. Si es necesario, el router realiza ARP en VLAN 99 para resolver la MAC del destino.
+10. El router envia la nueva trama por el mismo enlace fisico, ahora etiquetada con 802.1Q VLAN 99.
+11. El switch recibe la trama trunk, identifica VLAN 99 y la entrega a la SVI de gestion.
+12. La respuesta ICMP Echo Reply vuelve por el camino inverso con el mismo principio: switching L2 por VLAN y enrutamiento L3 en el router.
+
+---
+
+## 6. Verificacion recomendada
+
+Comandos utiles:
+
+```bash
+show ip interface brief
+show vlan brief
+show interfaces trunk
+show ip route
+show arp
+```
+
+Pruebas minimas:
 
 ```bash
 ping 192.168.20.10
 ping 192.168.99.11
 telnet 192.168.99.11
-telnet 192.168.99.12
-telnet 192.168.99.13
-```
-
-### 2.13 Verificacion final
-
-En el router:
-
-```bash
-show ip interface brief
-```
-
-Esperado:
-
-```text
-G0/0  192.168.10.1  up up
-G0/1  192.168.20.1  up up
-G0/2  192.168.99.1  up up
 ```
 
 ---
 
-## 3. Apartado (b): Gateway por defecto y nodo gateway
+## 7. Errores comunes
 
-### 3.1 Escenario sin router
-
-- No existe dispositivo de capa 3.
-- Ningun nodo puede actuar como gateway.
-- No hay enrutamiento entre VLANs.
-
-### 3.2 Escenario con router (apartado a)
-
-- PCs: si requieren gateway por defecto.
-- Switches (gestion): si requieren `ip default-gateway` para administracion remota.
-- Router: no requiere gateway por defecto para redes directamente conectadas.
-
-Gateways por VLAN:
-
-- VLAN 10 -> `192.168.10.1`
-- VLAN 20 -> `192.168.20.1`
-- VLAN 99 -> `192.168.99.1`
-
-Texto breve para informe:
-
-> Si es necesario configurar gateway por defecto en computadores y switches de gestion, pero no en el router. El router actua como gateway para todas las VLANs: 10, 20 y 99.
-
----
-
-## 4. Apartado (c): Una unica interfaz entre switch y router
-
-Se usa router-on-a-stick:
-
-- Un unico enlace fisico switch-router.
-- Puerto del switch en trunk 802.1Q.
-- Subinterfaces en el router (una por VLAN).
-
-Switch (puerto hacia router):
-
-```bash
-interface fa0/24
- switchport mode trunk
-```
-
-Router:
-
-```bash
-interface fa0/0
- no shutdown
-
-interface fa0/0.10
- encapsulation dot1Q 10
- ip address 192.168.10.1 255.255.255.0
-
-interface fa0/0.20
- encapsulation dot1Q 20
- ip address 192.168.20.1 255.255.255.0
-
-interface fa0/0.99
- encapsulation dot1Q 99
- ip address 192.168.99.1 255.255.255.0
-```
-
----
-
-## 5. Apartado (d): Camino del paquete (PC -> SVI) con router-on-a-stick
-
-Supuestos:
-
-- PC en VLAN 10.
-- SVI del switch en VLAN 99.
-- Router-on-a-stick configurado.
-
-Proceso:
-
-1. El PC genera un ICMP Echo Request hacia la IP de la SVI.
-2. El PC detecta que el destino esta en otra red y envia al gateway.
-3. Si no conoce la MAC del gateway, hace ARP en VLAN 10.
-4. El router responde ARP y el PC envia la trama al switch por puerto access.
-5. El switch etiqueta la trama con 802.1Q VLAN 10 al salir por trunk.
-6. El router recibe en la subinterfaz `fa0/0.10` y enruta hacia VLAN 99.
-7. Si es necesario, el router resuelve ARP en VLAN 99.
-8. El router reenvia la trama etiquetada como VLAN 99.
-9. El switch retira la etiqueta y entrega el paquete a su interfaz VLAN.
-
----
-
-## 6. Errores comunes
-
-- No configurar `ip default-gateway` en switches.
-- Dejar interfaces del router en `shutdown`.
-- Asignar puertos a VLAN incorrecta.
-- Omitir `no shutdown` en la SVI.
-- Configurar mal el tipo de enlace (`access` vs `trunk`).
-
-## 7. Resultado esperado
-
-- PC1 y PC2 tienen conectividad entre VLANs (cuando hay router).
-- Hay acceso de administracion (por ejemplo Telnet) a switches en VLAN 99.
-- Existe comunicacion estable entre hosts, switches y router.
+- No configurar gateway por defecto en PCs o switches de gestion.
+- Dejar interfaces o subinterfaces en shutdown.
+- Configurar mal el modo del puerto (access o trunk).
+- Omitir encapsulation dot1Q en subinterfaces del router.
+- Asignar VLAN incorrecta a un puerto de acceso.
