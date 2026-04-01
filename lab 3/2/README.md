@@ -1,94 +1,220 @@
-# Camino del Paquete (PC -> Interfaz VLAN del Conmutador con HSRP)
+# Laboratorio 3 - Punto 2
 
-## Supuestos
+## 1. Objetivo
 
-- PC en VLAN 10.
-- SVI del switch en VLAN 99.
-- Dos routers (R1 y R2).
-- HSRP configurado en las VLAN involucradas.
-- Existe una IP virtual como gateway HSRP.
+Adicionar un segundo router a la topologia del punto 1 y configurar redundancia de gateway con HSRP para VLAN 10, VLAN 20 y VLAN 99, garantizando conectividad completa entre todas las VLAN.
 
-## Proceso Completo
+## 2. Topologia propuesta
 
-1. **Generacion del paquete (Capa 3 - ICMP)**
-   - El PC genera un paquete ICMP (echo request).
-   - IP origen: PC.
-   - IP destino: SVI del switch.
-   - El PC consulta su tabla de enrutamiento, detecta que el destino esta en otra red y decide enviarlo al gateway por defecto.
+- Se mantienen S1, S2 y S3 del punto 1.
+- Se agregan 2 routers: R1 y R2.
+- S3 queda como switch de distribucion para los routers.
+- Enlaces:
+  - S3 <-> R1: trunk 802.1Q
+  - S3 <-> R2: trunk 802.1Q
+  - S1 <-> S3 y S2 <-> S3: trunk (igual que en punto 1)
 
-2. **Gateway HSRP (concepto clave)**
-   - El gateway configurado en el PC es la **IP virtual de HSRP**, no la IP fisica de un router.
-   - Solo un router esta activo.
-   - El otro router esta en estado standby.
+## 3. Plan de direccionamiento
 
-3. **ARP hacia el gateway virtual (Capa 2)**
-   - El PC envia un ARP Request: "Quien tiene la IP del gateway?".
-   - El router activo responde con la **MAC virtual de HSRP**.
-   - Punto clave: el PC no conoce routers reales; solo conoce IP virtual y MAC virtual.
+Para conservar compatibilidad con el punto 1, las IP virtuales HSRP quedan como gateway .1 en cada VLAN.
 
-4. **Envio del paquete al switch**
-   - Capa 3:
-     - Origen: IP del PC.
-     - Destino: IP de la SVI.
-   - Capa 2:
-     - Origen: MAC del PC.
-     - Destino: MAC virtual HSRP.
+| VLAN | Red | Gateway virtual HSRP | R1 | R2 |
+| --- | --- | --- | --- | --- |
+| 10 | 192.168.10.0/24 | 192.168.10.1 | 192.168.10.2 | 192.168.10.3 |
+| 20 | 192.168.20.0/24 | 192.168.20.1 | 192.168.20.2 | 192.168.20.3 |
+| 99 | 192.168.99.0/24 | 192.168.99.1 | 192.168.99.2 | 192.168.99.3 |
 
-5. **Paso por el switch (802.1Q)**
-   - El switch recibe la trama por puerto access (VLAN 10).
-   - Al reenviarla por el enlace trunk hacia los routers, agrega etiqueta 802.1Q de VLAN 10.
+## 4. Configuracion en S3 (trunks hacia routers)
 
-6. **Tramo critico: switch -> routers (HSRP)**
-   - La trama llega a ambos routers (si comparten el mismo dominio L2).
-   - Solo el router activo procesa el paquete porque posee la MAC virtual.
-   - El router standby ignora ese trafico.
+Ejemplo: R1 en Fa0/10 y R2 en Fa0/11.
 
-7. **Procesamiento en el router activo (Capa 3)**
-   - El router activo elimina la etiqueta 802.1Q.
-   - Identifica que el trafico viene de VLAN 10.
-   - Consulta su tabla de enrutamiento y determina que el destino esta en VLAN 99.
+```bash
+enable
+configure terminal
+interface fa0/10
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,99
 
-8. **ARP hacia el switch (VLAN 99)**
-   - Si el router no conoce la MAC del switch, envia ARP en VLAN 99.
-   - El switch responde con la MAC de su interfaz VLAN (SVI).
+interface fa0/11
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,99
+end
+copy running-config startup-config
+```
 
-9. **Reenvio hacia el switch**
-   - Capa 3:
-     - Origen: IP del PC.
-     - Destino: IP de la SVI.
-   - Capa 2:
-     - Origen: MAC del router.
-     - Destino: MAC del switch.
-   - Se encapsula con etiqueta 802.1Q de VLAN 99.
+## 5. Configuracion de R1 (router-on-a-stick + HSRP)
 
-10. **Recepcion en el switch**
-    - El switch quita la etiqueta.
-    - Reconoce su propia IP (SVI).
-    - Procesa el paquete.
+Se usa la interfaz fisica `g0/0` hacia S3.
 
-11. **Respuesta y alta disponibilidad**
-    - El switch responde y envia la respuesta al gateway virtual HSRP.
-    - El proceso se repite en sentido inverso.
-    - Si falla el router activo, el standby asume IP y MAC virtuales.
-    - El PC no requiere cambios ni nuevo ARP, por lo que la comunicacion continua.
+```bash
+enable
+configure terminal
+interface g0/0
+ no shutdown
 
-## Resumen por Capas
+interface g0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.2 255.255.255.0
+ standby 10 ip 192.168.10.1
+ standby 10 priority 110
+ standby 10 preempt
 
-### Capa 2
+interface g0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.2 255.255.255.0
+ standby 20 ip 192.168.20.1
+ standby 20 priority 110
+ standby 20 preempt
 
-- **ARP**:
-  - PC -> MAC virtual HSRP.
-  - Router -> MAC del switch.
-- **802.1Q**:
-  - Se usa en enlaces trunk.
-  - Identifica la VLAN en transito.
+interface g0/0.99
+ encapsulation dot1Q 99
+ ip address 192.168.99.2 255.255.255.0
+ standby 99 ip 192.168.99.1
+ standby 99 priority 110
+ standby 99 preempt
+end
+copy running-config startup-config
+```
 
-### Capa 3
+## 6. Configuracion de R2 (router-on-a-stick + HSRP)
 
-- ICMP (ping).
-- Consulta de tabla de enrutamiento en el router.
-- Decision de siguiente salto.
+Tambien sobre `g0/0` hacia S3.
 
-## Conclusion (lista para entregar)
+```bash
+enable
+configure terminal
+interface g0/0
+ no shutdown
 
-El computador genera un paquete ICMP hacia la interfaz VLAN del conmutador y, al determinar que el destino pertenece a otra red, lo envia al gateway por defecto configurado como una direccion IP virtual de HSRP. Mediante ARP, el computador obtiene la direccion MAC virtual asociada a dicha IP, la cual es atendida por el router activo. El paquete es enviado al switch, que añade una etiqueta 802.1Q al reenviarlo por el enlace troncal hacia los routers. Ambos routers reciben la trama, pero solo el activo la procesa. Este elimina la etiqueta, consulta su tabla de enrutamiento y reenvia el paquete hacia la VLAN destino, encapsulandolo nuevamente con la etiqueta correspondiente. Finalmente, el switch recibe la trama, elimina la etiqueta y entrega el paquete a su interfaz VLAN. En caso de falla del router activo, el router en espera asume la IP y MAC virtuales, garantizando continuidad sin afectar al host.
+interface g0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.3 255.255.255.0
+ standby 10 ip 192.168.10.1
+ standby 10 priority 100
+ standby 10 preempt
+
+interface g0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.3 255.255.255.0
+ standby 20 ip 192.168.20.1
+ standby 20 priority 100
+ standby 20 preempt
+
+interface g0/0.99
+ encapsulation dot1Q 99
+ ip address 192.168.99.3 255.255.255.0
+ standby 99 ip 192.168.99.1
+ standby 99 priority 100
+ standby 99 preempt
+end
+copy running-config startup-config
+```
+
+## 7. Gateways por defecto de hosts y switches
+
+- PC en VLAN 10: gateway `192.168.10.1`
+- PC en VLAN 20: gateway `192.168.20.1`
+- Switches S1/S2/S3 (gestion VLAN 99): `ip default-gateway 192.168.99.1`
+
+Con esto, todos apuntan al gateway virtual y no dependen de una IP fisica de router.
+
+## 8. Verificacion de redundancia y conectividad
+
+En R1 y R2:
+
+```bash
+show standby brief
+show ip interface brief
+show ip route
+```
+
+Pruebas recomendadas desde PCs y switches:
+
+```bash
+ping 192.168.10.10
+ping 192.168.20.10
+ping 192.168.99.11
+ping 192.168.99.12
+ping 192.168.99.13
+```
+
+Prueba de falla:
+
+1. Apagar `g0/0` en R1 (router activo esperado).
+2. Validar en R2 que pase a estado Active en `show standby brief`.
+3. Repetir pings entre VLANs y confirmar continuidad.
+
+## 9. Numeral (a): camino completo de un paquete (PC -> SVI del switch)
+
+Escenario de ejemplo:
+
+- PC1 en VLAN 10 (192.168.10.10).
+- Destino: SVI de S3 en VLAN 99 (192.168.99.13).
+- Gateway por defecto del PC: 192.168.10.1 (virtual HSRP grupo 10).
+- R1 activo, R2 standby (si no hay falla).
+
+Proceso detallado:
+
+1. El PC crea un ICMP Echo Request (capa 3) con:
+   - IP origen: 192.168.10.10
+   - IP destino: 192.168.99.13
+
+2. El PC revisa su tabla de enrutamiento local.
+   - Como 192.168.99.13 no esta en su red /24, decide enviar al gateway por defecto 192.168.10.1.
+
+3. ARP en VLAN 10 (capa 2).
+   - Si no conoce la MAC del gateway virtual, el PC envia ARP Request broadcast: quien tiene 192.168.10.1?
+   - El router activo HSRP responde con la MAC virtual del grupo.
+   - El PC guarda entrada ARP: 192.168.10.1 -> MAC virtual HSRP.
+
+4. El PC encapsula y envia la trama al switch de acceso.
+   - Trama Ethernet:
+     - MAC origen: MAC del PC
+     - MAC destino: MAC virtual HSRP
+   - Paquete IP interno:
+     - origen 192.168.10.10, destino 192.168.99.13
+
+5. El trafico cruza la red de switches hasta S3.
+   - En puertos access viaja sin etiqueta.
+   - En enlaces trunk, cada switch agrega/retira etiqueta 802.1Q VLAN 10 segun corresponda.
+
+6. Tramo S3 -> routers (zona critica de redundancia).
+   - S3 envia la trama por el trunk a los routers en VLAN 10 (802.1Q).
+   - Ambos routers escuchan hello HSRP, pero solo el activo posee la MAC virtual en forwarding para ese grupo.
+   - El standby no enruta trafico de la MAC virtual.
+
+7. Enrutamiento en el router activo (capa 3).
+   - El router recibe en subinterfaz .10, quita cabecera Ethernet y procesa IP.
+   - Consulta tabla de enrutamiento: 192.168.99.0/24 esta conectada directamente por subinterfaz .99.
+   - Decrementa TTL y recalcula checksum IP.
+
+8. Resolucion ARP de salida en VLAN 99.
+   - Si no conoce MAC de 192.168.99.13, envia ARP Request en VLAN 99.
+   - S3 responde con la MAC de su interfaz VLAN 99.
+
+9. Reencapsulacion hacia VLAN 99.
+   - Nueva trama Ethernet:
+     - MAC origen: MAC de R1/R2 en subinterfaz VLAN 99
+     - MAC destino: MAC de S3 VLAN 99
+   - El frame sale etiquetado 802.1Q VLAN 99 por el trunk.
+
+10. S3 recibe, quita etiqueta 802.1Q y entrega al plano de control.
+    - Como IP destino es su SVI (192.168.99.13), procesa el ICMP Echo Request y genera Echo Reply.
+
+11. Camino de regreso.
+    - S3 envia respuesta al gateway virtual 192.168.99.1.
+    - ARP para MAC virtual de HSRP grupo 99.
+    - Router activo enruta de vuelta hacia VLAN 10 y el PC recibe respuesta.
+
+12. Comportamiento ante falla.
+    - Si falla el router activo, el standby toma estado Active y asume IP/MAC virtual.
+    - Hosts y switches siguen usando el mismo gateway virtual, sin reconfiguracion.
+    - Se mantiene conectividad inter-VLAN tras la convergencia HSRP.
+
+## 10. Conclusiones
+
+- HSRP permite gateway redundante por VLAN usando una IP virtual estable.
+- 802.1Q permite transportar multiples VLAN por un mismo enlace fisico hacia los routers.
+- ARP resuelve siempre hacia MAC virtual HSRP para el gateway.
+- El enrutamiento entre VLAN lo ejecuta el router activo consultando su tabla de rutas conectadas.
+- Con la prueba de falla se valida continuidad del servicio y conectividad completa entre VLAN 10, 20 y 99.
