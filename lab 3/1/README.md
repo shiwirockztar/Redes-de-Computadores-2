@@ -358,19 +358,24 @@ Router (subinterfaces):
 enable
 configure terminal
 interface g0/0
- no shutdown
+no ip address
+no shutdown
+interface g0/1
+no ip address
+no shutdown
+interface g0/2
+no ip address
+no shutdown
 
 interface g0/0.10
- encapsulation dot1Q 10
- ip address 192.168.10.1 255.255.255.0
-
+encapsulation dot1Q 10
+ip address 192.168.10.1 255.255.255.0
 interface g0/0.20
- encapsulation dot1Q 20
- ip address 192.168.20.1 255.255.255.0
-
+encapsulation dot1Q 20
+ip address 192.168.20.1 255.255.255.0
 interface g0/0.99
- encapsulation dot1Q 99
- ip address 192.168.99.1 255.255.255.0
+encapsulation dot1Q 99
+ip address 192.168.99.1 255.255.255.0
 end
 copy running-config startup-config
 ```
