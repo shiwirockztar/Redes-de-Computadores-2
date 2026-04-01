@@ -346,6 +346,15 @@ Switch (puerto hacia el router):
 ```bash
 enable
 configure terminal
+interface fa0/10
+no ip address
+no shutdown
+interface fa0/11
+no ip address
+no shutdown
+interface fa0/12
+no ip address
+no shutdown
 interface fa0/24
  switchport mode trunk
 end
