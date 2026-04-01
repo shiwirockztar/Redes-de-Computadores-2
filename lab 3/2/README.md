@@ -10,9 +10,19 @@ Adicionar un segundo router a la topologia del punto 1 y configurar redundancia 
 - Se agregan 2 routers: R1 y R2.
 - S3 queda como switch de distribucion para los routers.
 - Enlaces:
-  - S3 <-> R1: trunk 802.1Q
-  - S3 <-> R2: trunk 802.1Q
+   - S3 <-> R1: trunk 802.1Q por Fa0/10
+   - S3 <-> R2: trunk 802.1Q por Fa0/11
   - S1 <-> S3 y S2 <-> S3: trunk (igual que en punto 1)
+
+### 2.1 Conexion fisica final (ajustada a la topologia del punto 1)
+
+| Dispositivo A | Puerto A | Dispositivo B | Puerto B | Uso |
+| --- | --- | --- | --- | --- |
+| R1 | G0/0 | S3 | Fa0/10 | Trunk 802.1Q VLAN 10,20,99 |
+| R2 | G0/0 | S3 | Fa0/11 | Trunk 802.1Q VLAN 10,20,99 |
+| S3 | Fa0/12 | Libre | - | Reserva / no usado en este punto |
+
+Nota: en el punto 1, Fa0/10, Fa0/11 y Fa0/12 estaban en modo access hacia un solo router. En este punto 2 se reutilizan Fa0/10 y Fa0/11 como trunks hacia R1 y R2 para implementar HSRP.
 
 ## 3. Plan de direccionamiento
 
@@ -26,7 +36,7 @@ Para conservar compatibilidad con el punto 1, las IP virtuales HSRP quedan como 
 
 ## 4. Configuracion en S3 (trunks hacia routers)
 
-Ejemplo: R1 en Fa0/10 y R2 en Fa0/11.
+Configuracion final: R1 en Fa0/10 y R2 en Fa0/11.
 
 ```bash
 enable
@@ -38,6 +48,9 @@ interface fa0/10
 interface fa0/11
  switchport mode trunk
  switchport trunk allowed vlan 10,20,99
+
+interface fa0/12
+ shutdown
 end
 copy running-config startup-config
 ```
