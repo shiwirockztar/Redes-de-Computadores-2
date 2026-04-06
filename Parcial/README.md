@@ -48,6 +48,8 @@ vlan 30
  name USUARIOS30
 vlan 40
  name ADMIN
+exit
+end
 copy running-config startup-config
 ```
 
@@ -70,6 +72,8 @@ interface fa0/6
 interface fa0/7
  switchport mode access
  switchport access vlan 40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -90,6 +94,8 @@ interface fa0/6
 interface fa0/7
  switchport mode access
  switchport access vlan 40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -110,6 +116,8 @@ interface fa0/5
 interface fa0/6
  switchport mode access
  switchport access vlan 40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -124,6 +132,8 @@ interface range fa0/1 - 2
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -136,6 +146,8 @@ interface range fa0/1 - 3
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -148,6 +160,8 @@ interface range fa0/1 - 4
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -160,6 +174,8 @@ interface range fa0/1 - 2
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -172,6 +188,8 @@ interface range fa0/1 - 3
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
+exit
+end
 copy running-config startup-config
 ```
 
@@ -184,6 +202,8 @@ interface range fa0/1 - 2
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
+exit
+end
 copy running-config startup-config
 ```
 
