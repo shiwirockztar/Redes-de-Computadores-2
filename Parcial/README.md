@@ -227,6 +227,7 @@ interface vlan 40
  no shutdown
 exit
 ip default-gateway 192.168.40.254
+end
 copy running-config startup-config
 ```
 
