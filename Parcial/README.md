@@ -54,7 +54,7 @@ Gateway de administración (si existe router/L3): 192.168.40.254
 
 Configura nombre del equipo según corresponda (SW1, SW2, ..., SW6):
 
-```cisco
+```bash
 enable
 configure terminal
 hostname SWX
@@ -85,7 +85,7 @@ line vty 5 15
  transport input telnet
  exec-timeout 10 0
 end
-write memory
+copy running-config startup-config
 ```
 
 Nota: esta configuración separa VTY para cumplir explícitamente ambos requisitos:
@@ -96,7 +96,7 @@ Nota: esta configuración separa VTY para cumplir explícitamente ambos requisit
 
 ## SW1
 
-```cisco
+```bash
 enable
 configure terminal
 interface range fa0/1 - 2
@@ -105,12 +105,12 @@ interface range fa0/1 - 2
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW2
 
-```cisco
+```bash
 enable
 configure terminal
 interface range fa0/1 - 3
@@ -119,12 +119,12 @@ interface range fa0/1 - 3
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW3
 
-```cisco
+```bash
 enable
 configure terminal
 interface range fa0/1 - 4
@@ -133,12 +133,12 @@ interface range fa0/1 - 4
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW4
 
-```cisco
+```bash
 enable
 configure terminal
 interface range fa0/1 - 2
@@ -147,12 +147,12 @@ interface range fa0/1 - 2
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW5
 
-```cisco
+```bash
 enable
 configure terminal
 interface range fa0/1 - 3
@@ -161,12 +161,12 @@ interface range fa0/1 - 3
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW6
 
-```cisco
+```bash
 enable
 configure terminal
 interface range fa0/1 - 2
@@ -175,14 +175,14 @@ interface range fa0/1 - 2
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 end
-write memory
+copy running-config startup-config
 ```
 
 ## 6. Puertos de acceso para usuarios (SW4, SW5, SW6)
 
 ## SW4
 
-```cisco
+```bash
 enable
 configure terminal
 interface fa0/4
@@ -198,12 +198,12 @@ interface fa0/6
  switchport access vlan 30
  spanning-tree portfast
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW5
 
-```cisco
+```bash
 enable
 configure terminal
 interface fa0/4
@@ -219,12 +219,12 @@ interface fa0/6
  switchport access vlan 30
  spanning-tree portfast
 end
-write memory
+copy running-config startup-config
 ```
 
 ## SW6
 
-```cisco
+```bash
 enable
 configure terminal
 interface fa0/3
@@ -240,7 +240,7 @@ interface fa0/5
  switchport access vlan 30
  spanning-tree portfast
 end
-write memory
+copy running-config startup-config
 ```
 
 ## 7. SVI de administración (VLAN 40)
@@ -249,7 +249,7 @@ Configurar en cada switch la IP correspondiente de la tabla de la sección 3.
 
 Ejemplo SW1:
 
-```cisco
+```bash
 enable
 configure terminal
 interface vlan 40
@@ -258,7 +258,7 @@ interface vlan 40
 exit
 ip default-gateway 192.168.40.254
 end
-write memory
+copy running-config startup-config
 ```
 
 Repetir en SW2-SW6 cambiando únicamente la IP.
@@ -269,29 +269,29 @@ Para evitar que el root bridge quede aleatorio:
 
 En SW1 (core):
 
-```cisco
+```bash
 enable
 configure terminal
 spanning-tree vlan 10,20,30,40 root primary
 end
-write memory
+copy running-config startup-config
 ```
 
 En SW2 (respaldo):
 
-```cisco
+```bash
 enable
 configure terminal
 spanning-tree vlan 10,20,30,40 root secondary
 end
-write memory
+copy running-config startup-config
 ```
 
 ## 9. Verificación de cumplimiento (checklist)
 
 Ejecutar en todos los switches:
 
-```cisco
+```bash
 show vlan brief
 show interfaces trunk
 show spanning-tree vlan 10
