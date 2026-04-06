@@ -49,17 +49,17 @@ Manteniendo la estructura del parcial, se crean port-channels dedicados:
 
 - SW4 <-> SW2: Fa0/1-3 (Po14)
 - SW5 <-> SW3: Fa0/1-3 (Po15)
-- SW6 <-> SW3: Fa0/1-3 (Po16)
-- SW2 <-> SW1: Fa0/4-6 (Po12)
-- SW3 <-> SW1: Fa0/5-7 (Po13)
+- SW6 <-> SW3: SW6 Fa0/1-3 <-> SW3 Fa0/4-6 (Po16)
+- SW2 <-> SW1: SW2 Fa0/4-6 <-> SW1 Fa0/1-3 (Po12)
+- SW3 <-> SW1: SW3 Fa0/7-9 <-> SW1 Fa0/4-6 (Po13)
 
 Nota: ajusta numeracion si en tu modelo esos puertos no existen. La regla es usar 3 enlaces por cada uplink critico.
 
 ### 4.1 Mapa de puertos por switch (para reconexion)
 
 SW1 (Core):
-- Fa0/4-6 -> hacia SW2 (Po12)
-- Fa0/5-7 -> hacia SW3 (Po13)
+- Fa0/1-3 -> hacia SW2 (Po12)
+- Fa0/4-6 -> hacia SW3 (Po13)
 
 SW2 (Distribucion):
 - Fa0/1-3 -> hacia SW4 (Po14)
@@ -67,8 +67,8 @@ SW2 (Distribucion):
 
 SW3 (Distribucion):
 - Fa0/1-3 -> hacia SW5 (Po15)
-- Fa0/1-3 -> hacia SW6 (Po16)
-- Fa0/5-7 -> hacia SW1 (Po13)
+- Fa0/4-6 -> hacia SW6 (Po16)
+- Fa0/7-9 -> hacia SW1 (Po13)
 
 SW4 (Acceso):
 - Fa0/1-3 -> hacia SW2 (Po14)
