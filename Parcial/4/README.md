@@ -47,11 +47,11 @@ Margen por enlace:
 
 Manteniendo la estructura del parcial, se crean port-channels dedicados:
 
-- SW4 <-> SW2: Fa0/1-3 (Po14)
-- SW5 <-> SW3: Fa0/1-3 (Po15)
-- SW6 <-> SW3: SW6 Fa0/1-3 <-> SW3 Fa0/4-6 (Po16)
-- SW2 <-> SW1: SW2 Fa0/4-6 <-> SW1 Fa0/1-3 (Po12)
-- SW3 <-> SW1: SW3 Fa0/7-9 <-> SW1 Fa0/4-6 (Po13)
+- SW4 <-> SW2: Fa0/1-3 (Po1)
+- SW5 <-> SW3: Fa0/1-3 (Po2)
+- SW6 <-> SW3: SW6 Fa0/1-3 <-> SW3 Fa0/4-6 (Po3)
+- SW2 <-> SW1: SW2 Fa0/4-6 <-> SW1 Fa0/1-3 (Po4)
+- SW3 <-> SW1: SW3 Fa0/7-9 <-> SW1 Fa0/4-6 (Po5)
 
 Enlaces laterales adicionales (recomendados en Gigabit para contingencia):
 
@@ -64,31 +64,31 @@ Nota: ajusta numeracion si en tu modelo esos puertos no existen. La regla es usa
 ### 4.1 Mapa de puertos por switch (para reconexion)
 
 SW1 (Core):
-- Fa0/1-3 -> hacia SW2 (Po12)
-- Fa0/4-6 -> hacia SW3 (Po13)
+- Fa0/1-3 -> hacia SW2 (Po4)
+- Fa0/4-6 -> hacia SW3 (Po5)
 
 SW2 (Distribucion):
-- Fa0/1-3 -> hacia SW4 (Po14)
-- Fa0/4-6 -> hacia SW1 (Po12)
+- Fa0/1-3 -> hacia SW4 (Po1)
+- Fa0/4-6 -> hacia SW1 (Po4)
 - Gi0/1 -> hacia SW3 (enlace lateral)
 
 SW3 (Distribucion):
-- Fa0/1-3 -> hacia SW5 (Po15)
-- Fa0/4-6 -> hacia SW6 (Po16)
-- Fa0/7-9 -> hacia SW1 (Po13)
+- Fa0/1-3 -> hacia SW5 (Po2)
+- Fa0/4-6 -> hacia SW6 (Po3)
+- Fa0/7-9 -> hacia SW1 (Po5)
 - Gi0/1 -> hacia SW2 (enlace lateral)
 
 SW4 (Acceso):
-- Fa0/1-3 -> hacia SW2 (Po14)
+- Fa0/1-3 -> hacia SW2 (Po1)
 - Gi0/1 -> hacia SW5 (enlace lateral)
 
 SW5 (Acceso):
-- Fa0/1-3 -> hacia SW3 (Po15)
+- Fa0/1-3 -> hacia SW3 (Po2)
 - Gi0/1 -> hacia SW4 (enlace lateral)
 - Gi0/2 -> hacia SW6 (enlace lateral)
 
 SW6 (Acceso):
-- Fa0/1-3 -> hacia SW3 (Po16)
+- Fa0/1-3 -> hacia SW3 (Po3)
 - Gi0/1 -> hacia SW5 (enlace lateral)
 
 Importante:
@@ -113,10 +113,10 @@ interface range fa0/1 - 3
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
- channel-group 14 mode active
+ channel-group 1 mode active
  no shutdown
 exit
-interface port-channel 14
+interface port-channel 1
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
@@ -134,10 +134,10 @@ interface range fa0/1 - 3
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
- channel-group 14 mode active
+ channel-group 1 mode active
  no shutdown
 exit
-interface port-channel 14
+interface port-channel 1
  switchport mode trunk
  switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
@@ -150,10 +150,10 @@ copy running-config startup-config
 
 Usa el mismo patron para:
 
-- Po15: SW5 <-> SW3
-- Po16: SW6 <-> SW3
-- Po12: SW2 <-> SW1
-- Po13: SW3 <-> SW1
+- Po2: SW5 <-> SW3
+- Po3: SW6 <-> SW3
+- Po4: SW2 <-> SW1
+- Po5: SW3 <-> SW1
 
 ### 5.3 Configuracion de enlaces laterales Gigabit (trunk)
 
@@ -251,18 +251,24 @@ Comandos utiles:
 show spanning-tree vlan 10
 show spanning-tree vlan 20
 show etherchannel summary
-show interfaces port-channel 12
-show interfaces port-channel 13
-show interfaces port-channel 14
-show interfaces port-channel 15
-show interfaces port-channel 16
+show interfaces port-channel 1
+show interfaces port-channel 2
+show interfaces port-channel 3
+show interfaces port-channel 4
+show interfaces port-channel 5
 ```
 
 ## 7) Verificacion de no perdida a trafico promedio
 
 ## 7.1 Validacion de capacidad por enlace
 
-Debes confirmar que todos los uplinks criticos esten en Port-Channel con 3 miembros activos (SU o RU segun plataforma) en `show etherchannel summary`.
+Debes confirmar que todos los uplinks criticos esten en Port-Channel con 3 miembros activos en `show etherchannel summary`.
+
+Para 2960-24TT, estado esperado:
+
+- Port-Channel en `SU`.
+- Miembros con `P` (bundled).
+- Protocolo `LACP` (si usas `mode active`).
 
 Resultado esperado:
 
@@ -280,7 +286,9 @@ show interfaces counters errors
 show interfaces fa0/1
 show interfaces fa0/2
 show interfaces fa0/3
-show interfaces port-channel 14
+show interfaces port-channel 1
+show etherchannel summary
+show lacp neighbor
 ```
 
 Repite para los otros Port-Channel.
