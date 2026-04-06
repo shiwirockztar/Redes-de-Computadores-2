@@ -102,7 +102,7 @@ Importante:
 
 Recomendacion: usar LACP en modo active en ambos extremos.
 
-### 5.1 Ejemplo SW4 <-> SW2 (Po14)
+### 5.1 Ejemplo SW4 <-> SW2 (Po1)
 
 En SW4:
 
@@ -154,6 +154,187 @@ Usa el mismo patron para:
 - Po3: SW6 <-> SW3
 - Po4: SW2 <-> SW1
 - Po5: SW3 <-> SW1
+
+```bash
+show etherchannel summary
+show interfaces trunk
+```
+
+#### Po2: SW5 <-> SW3
+
+En SW5:
+
+```bash
+enable
+configure terminal
+interface range fa0/1 - 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 2 mode active
+ no shutdown
+exit
+interface port-channel 2
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+En SW3:
+
+```bash
+enable
+configure terminal
+interface range fa0/1 - 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 2 mode active
+ no shutdown
+exit
+interface port-channel 2
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+#### Po3: SW6 <-> SW3
+
+En SW6:
+
+```bash
+enable
+configure terminal
+interface range fa0/1 - 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 3 mode active
+ no shutdown
+exit
+interface port-channel 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+En SW3:
+
+```bash
+enable
+configure terminal
+interface range fa0/4 - 6
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 3 mode active
+ no shutdown
+exit
+interface port-channel 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+#### Po4: SW2 <-> SW1
+
+En SW2:
+
+```bash
+enable
+configure terminal
+interface range fa0/4 - 6
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 4 mode active
+ no shutdown
+exit
+interface port-channel 4
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+En SW1:
+
+```bash
+enable
+configure terminal
+interface range fa0/1 - 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 4 mode active
+ no shutdown
+exit
+interface port-channel 4
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+#### Po5: SW3 <-> SW1
+
+En SW3:
+
+```bash
+enable
+configure terminal
+interface range fa0/7 - 9
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 5 mode active
+ no shutdown
+exit
+interface port-channel 5
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+En SW1:
+
+```bash
+enable
+configure terminal
+interface range fa0/4 - 6
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ channel-group 5 mode active
+ no shutdown
+exit
+interface port-channel 5
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
 
 ### 5.3 Configuracion de enlaces laterales Gigabit (trunk)
 
