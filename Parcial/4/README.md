@@ -55,6 +55,34 @@ Manteniendo la estructura del parcial, se crean port-channels dedicados:
 
 Nota: ajusta numeracion si en tu modelo esos puertos no existen. La regla es usar 3 enlaces por cada uplink critico.
 
+### 4.1 Mapa de puertos por switch (para reconexion)
+
+SW1 (Core):
+- Fa0/4-6 -> hacia SW2 (Po12)
+- Fa0/5-7 -> hacia SW3 (Po13)
+
+SW2 (Distribucion):
+- Fa0/1-3 -> hacia SW4 (Po14)
+- Fa0/4-6 -> hacia SW1 (Po12)
+
+SW3 (Distribucion):
+- Fa0/1-3 -> hacia SW5 (Po15)
+- Fa0/1-3 -> hacia SW6 (Po16)
+- Fa0/5-7 -> hacia SW1 (Po13)
+
+SW4 (Acceso):
+- Fa0/1-3 -> hacia SW2 (Po14)
+
+SW5 (Acceso):
+- Fa0/1-3 -> hacia SW3 (Po15)
+
+SW6 (Acceso):
+- Fa0/1-3 -> hacia SW3 (Po16)
+
+Importante:
+- Verifica que un mismo puerto fisico no quede asignado a dos Port-Channel distintos.
+- Si tu modelo no tiene suficientes FastEthernet para dos uplinks de 3 enlaces en un mismo switch, redisena numeracion o usa puertos Gigabit.
+
 ## 5) Configuracion base de EtherChannel (LACP)
 
 Recomendacion: usar LACP en modo active en ambos extremos.
