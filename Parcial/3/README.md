@@ -239,6 +239,49 @@ Para validar que se preserva el comportamiento esperado:
 3. Ejecuta de nuevo verificaciones del punto 6.
 4. Confirma que para VLAN 10 y 20 se recuperan los puertos bloqueados esperados y que en VLAN 30 y 40 el Root sigue en distribucion.
 
+Caso critico recomendado: reemplazo de SW2 (distribucion)
+
+Este caso es vital porque SW2 fue definido como Root Bridge para VLAN 30 y 40.
+
+1. Retira SW2 y agrega un switch nuevo en su lugar con los mismos enlaces fisicos:
+  - SW1 Fa0/1 <-> SW2 Fa0/1
+  - SW2 Fa0/2 <-> SW3 Fa0/2
+  - SW2 Fa0/3 <-> SW4 Fa0/1
+2. Configura en el nuevo SW2 lo basico de Capa 2 antes de validar STP:
+  - VLAN 10,20,30,40 creadas.
+  - Trunks en Fa0/1-3 con native VLAN 30 y allowed VLAN 10,20,30,40.
+3. Reaplica prioridades STP de SW2 (punto 5):
+
+```bash
+enable
+configure terminal
+spanning-tree vlan 10,20 priority 8192
+spanning-tree vlan 30,40 priority 4096
+end
+copy running-config startup-config
+```
+
+4. Verifica estado de root en el nuevo SW2:
+
+```bash
+show spanning-tree root
+show spanning-tree vlan 30
+show spanning-tree vlan 40
+```
+
+Resultado esperado:
+- VLAN 30 y 40: SW2 vuelve a ser Root Bridge.
+- VLAN 10 y 20: SW1 se mantiene como Root Bridge.
+
+5. Verifica que la topologia de VLAN 10 y 20 se conserva en distribucion/acceso:
+  - En SW3, Fa0/2 debe volver a bloqueado para VLAN 10 y 20.
+  - En SW5, Fa0/2 y Fa0/3 deben permanecer bloqueados para VLAN 10 y 20.
+  - En SW4 y SW6, el puerto hacia distribucion debe quedar como Root Port.
+
+6. Realiza prueba funcional final:
+  - Ping VLAN 10 entre un host en SW4 y otro en SW6.
+  - En Simulation Mode, valida que no hay transito por SW5 Fa0/2 o Fa0/3 para VLAN 10.
+
 ## 10) Notas importantes
 
 - Las prioridades de STP deben ser multiplos de 4096.
