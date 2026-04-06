@@ -236,6 +236,17 @@ copy running-config startup-config
 Primero configura Telnet:
 
 ```bash
+ena
+conf t
+line vty 0 15
+password udea
+enable password redes
+login
+end
+copy running-config startup-config
+```
+
+```bash
 enable
 configure terminal
 enable secret redes
