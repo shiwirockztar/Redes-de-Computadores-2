@@ -55,7 +55,6 @@ copy running-config startup-config
 
 ## 4) Puertos de acceso (SW4, SW5, SW6)
 
-SW4:
 
 ```bash
 enable
@@ -70,50 +69,6 @@ interface fa0/6
  switchport mode access
  switchport access vlan 30
 interface fa0/7
- switchport mode access
- switchport access vlan 40
-exit
-end
-copy running-config startup-config
-```
-
-SW5:
-
-```bash
-enable
-configure terminal
-interface fa0/4
- switchport mode access
- switchport access vlan 10
-interface fa0/5
- switchport mode access
- switchport access vlan 20
-interface fa0/6
- switchport mode access
- switchport access vlan 30
-interface fa0/7
- switchport mode access
- switchport access vlan 40
-exit
-end
-copy running-config startup-config
-```
-
-SW6:
-
-```bash
-enable
-configure terminal
-interface fa0/3
- switchport mode access
- switchport access vlan 10
-interface fa0/4
- switchport mode access
- switchport access vlan 20
-interface fa0/5
- switchport mode access
- switchport access vlan 30
-interface fa0/6
  switchport mode access
  switchport access vlan 40
 exit
