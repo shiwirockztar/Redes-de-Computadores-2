@@ -166,7 +166,71 @@ show spanning-tree root
 - Root secundario: SW3.
 - SW1 no debe ser Root Bridge en estas VLAN.
 
-## 8) Prueba de resiliencia (reemplazo de switches)
+## 8) Verificacion en simulacion (ejemplo SW4 VLAN 10 -> SW6 VLAN 10)
+
+Objetivo del ejemplo:
+- Confirmar que el trafico entre dos PCs de VLAN 10 usa el arbol STP esperado.
+- Verificar que SW5 no reenvia por Fa0/2 ni Fa0/3 en VLAN 10 (deben estar bloqueados).
+
+Topologia del ejemplo:
+- PC-A en SW4 puerto de acceso VLAN 10 (por ejemplo Fa0/4), IP 192.168.10.10/24.
+- PC-B en SW6 puerto de acceso VLAN 10 (por ejemplo Fa0/3), IP 192.168.10.11/24.
+
+Paso 1: confirmar estado STP antes de simular
+
+En SW5:
+
+```bash
+show spanning-tree vlan 10
+```
+
+Debes ver:
+- Fa0/1 en Root Port (hacia SW3).
+- Fa0/2 y Fa0/3 en estado bloqueado/alternate para VLAN 10.
+
+En SW1:
+
+```bash
+show spanning-tree vlan 10
+```
+
+Debes ver que SW1 es Root Bridge para VLAN 10.
+
+Paso 2: preparar la simulacion en Packet Tracer
+
+1. Cambia a Simulation Mode.
+2. Deja activos al menos los filtros ARP e ICMP.
+3. Limpia eventos previos (Reset Simulation/Clear Event List).
+
+Paso 3: generar trafico
+
+Desde PC-A (192.168.10.10), ejecuta:
+
+```bash
+ping 192.168.10.11
+```
+
+Paso 4: analizar ARP (primer ping)
+
+- El primer paquete sera ARP Request (broadcast).
+- Debe propagarse por el arbol STP de VLAN 10.
+- Camino esperado entre SW4 y SW6: SW4 -> SW2 -> SW1 -> SW3 -> SW6.
+- SW5 puede recibir por Fa0/1, pero no debe reenviar por Fa0/2 ni Fa0/3 porque estan bloqueados para VLAN 10.
+
+Paso 5: analizar ICMP (cuando ARP ya resolvio)
+
+- Luego del ARP Reply, el ICMP Echo Request/Reply debe seguir el camino activo del arbol.
+- No debe aparecer reenvio transitivo por SW5 hacia SW4/SW6 en VLAN 10.
+
+Paso 6: validacion final
+
+La verificacion es correcta si se cumple todo esto:
+1. SW1 aparece como Root Bridge en VLAN 10.
+2. En SW5, Fa0/2 y Fa0/3 siguen bloqueados para VLAN 10.
+3. El ping entre PC-A y PC-B responde.
+4. En Simulation Mode no observas camino de transito por SW5 Fa0/2 o Fa0/3.
+
+## 9) Prueba de resiliencia (reemplazo de switches)
 
 Para validar que se preserva el comportamiento esperado:
 
@@ -175,7 +239,7 @@ Para validar que se preserva el comportamiento esperado:
 3. Ejecuta de nuevo verificaciones del punto 6.
 4. Confirma que para VLAN 10 y 20 se recuperan los puertos bloqueados esperados y que en VLAN 30 y 40 el Root sigue en distribucion.
 
-## 9) Notas importantes
+## 10) Notas importantes
 
 - Las prioridades de STP deben ser multiplos de 4096.
 - Si omites prioridades explicitas, STP puede elegir root por MAC y cambiar el resultado al reemplazar equipos.
