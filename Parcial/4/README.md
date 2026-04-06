@@ -53,11 +53,11 @@ Manteniendo la estructura del parcial, se crean port-channels dedicados:
 - SW2 <-> SW1: SW2 Fa0/4-6 <-> SW1 Fa0/1-3 (Po12)
 - SW3 <-> SW1: SW3 Fa0/7-9 <-> SW1 Fa0/4-6 (Po13)
 
-Enlaces laterales adicionales (como en numerales anteriores, fuera de EtherChannel):
+Enlaces laterales adicionales (recomendados en Gigabit para contingencia):
 
-- SW2 <-> SW3: SW2 Fa0/7 <-> SW3 Fa0/10
-- SW4 <-> SW5: SW4 Fa0/4 <-> SW5 Fa0/4
-- SW5 <-> SW6: SW5 Fa0/5 <-> SW6 Fa0/4
+- SW2 <-> SW3: SW2 Gi0/1 <-> SW3 Gi0/1
+- SW4 <-> SW5: SW4 Gi0/1 <-> SW5 Gi0/1
+- SW5 <-> SW6: SW5 Gi0/2 <-> SW6 Gi0/1
 
 Nota: ajusta numeracion si en tu modelo esos puertos no existen. La regla es usar 3 enlaces por cada uplink critico.
 
@@ -70,30 +70,32 @@ SW1 (Core):
 SW2 (Distribucion):
 - Fa0/1-3 -> hacia SW4 (Po14)
 - Fa0/4-6 -> hacia SW1 (Po12)
-- Fa0/7 -> hacia SW3 (enlace lateral)
+- Gi0/1 -> hacia SW3 (enlace lateral)
 
 SW3 (Distribucion):
 - Fa0/1-3 -> hacia SW5 (Po15)
 - Fa0/4-6 -> hacia SW6 (Po16)
 - Fa0/7-9 -> hacia SW1 (Po13)
-- Fa0/10 -> hacia SW2 (enlace lateral)
+- Gi0/1 -> hacia SW2 (enlace lateral)
 
 SW4 (Acceso):
 - Fa0/1-3 -> hacia SW2 (Po14)
-- Fa0/4 -> hacia SW5 (enlace lateral)
+- Gi0/1 -> hacia SW5 (enlace lateral)
 
 SW5 (Acceso):
 - Fa0/1-3 -> hacia SW3 (Po15)
-- Fa0/4 -> hacia SW4 (enlace lateral)
-- Fa0/5 -> hacia SW6 (enlace lateral)
+- Gi0/1 -> hacia SW4 (enlace lateral)
+- Gi0/2 -> hacia SW6 (enlace lateral)
 
 SW6 (Acceso):
 - Fa0/1-3 -> hacia SW3 (Po16)
-- Fa0/4 -> hacia SW5 (enlace lateral)
+- Gi0/1 -> hacia SW5 (enlace lateral)
 
 Importante:
 - Verifica que un mismo puerto fisico no quede asignado a dos Port-Channel distintos.
 - Configura los enlaces laterales como trunk y evita agregarlos a un channel-group si se desean mantener como enlaces independientes.
+- Mantener Fa0/4-Fa0/7 de SW4, SW5 y SW6 para puertos de acceso de usuarios (VLAN 10/20/30/40).
+- Objetivo de los enlaces laterales en Gigabit: evitar congestion y perdida de paquetes en escenarios de falla/convergencia.
 - Si tu modelo no tiene suficientes FastEthernet para dos uplinks de 3 enlaces en un mismo switch, redisena numeracion o usa puertos Gigabit.
 
 ## 5) Configuracion base de EtherChannel (LACP)
@@ -153,6 +155,88 @@ Usa el mismo patron para:
 - Po12: SW2 <-> SW1
 - Po13: SW3 <-> SW1
 
+### 5.3 Configuracion de enlaces laterales Gigabit (trunk)
+
+Estos enlaces se mantienen fuera de EtherChannel y se configuran como troncales independientes.
+
+SW2 (hacia SW3 por Gi0/1):
+
+```bash
+enable
+configure terminal
+interface gi0/1
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+SW3 (hacia SW2 por Gi0/1):
+
+```bash
+enable
+configure terminal
+interface gi0/1
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+SW4 (hacia SW5 por Gi0/1):
+
+```bash
+enable
+configure terminal
+interface gi0/1
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+SW5 (hacia SW4 por Gi0/1 y hacia SW6 por Gi0/2):
+
+```bash
+enable
+configure terminal
+interface range gi0/1 - 2
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+SW6 (hacia SW5 por Gi0/1):
+
+```bash
+enable
+configure terminal
+interface gi0/1
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+end
+copy running-config startup-config
+```
+
+Verificacion recomendada:
+
+```bash
+show interfaces trunk
+show interfaces gi0/1 switchport
+show interfaces gi0/2 switchport
+```
+
 ## 6) STP sobre Port-Channel
 
 Para evitar inconsistencias y mantener convergencia limpia:
@@ -209,6 +293,7 @@ Condicion de cumplimiento:
 
 - Uplinks Acceso -> Distribucion en EtherChannel de 3xFE.
 - Uplinks Distribucion -> Core en EtherChannel de 3xFE.
+- Enlaces laterales (SW2-SW3, SW4-SW5, SW5-SW6) en Gigabit y en trunk para contingencia.
 - Trunks con VLAN 10,20,30,40 y native VLAN 30 consistentes.
 - STP estable sobre interfaces Port-Channel.
 - Sin sintomas de saturacion en trafico promedio exigido.
