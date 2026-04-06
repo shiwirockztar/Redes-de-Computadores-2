@@ -233,6 +233,38 @@ copy running-config startup-config
 
 ## 7) Telnet y SSH en todos los switches
 
+Primero configura Telnet:
+
+```bash
+enable
+configure terminal
+enable secret redes
+line vty 0 15
+ password udea
+ login
+ transport input telnet
+end
+copy running-config startup-config
+```
+
+Luego configura SSH:
+
+```bash
+enable
+configure terminal
+ip domain-name empresa.local
+username admin password martes
+crypto key generate rsa modulus 1024
+ip ssh version 2
+line vty 0 15
+ login local
+ transport input ssh telnet
+end
+copy running-config startup-config
+```
+
+Codigo completo :
+
 ```bash
 enable
 configure terminal
