@@ -250,6 +250,75 @@ Este caso es vital porque SW2 fue definido como Root Bridge para VLAN 30 y 40.
 2. Configura en el nuevo SW2 lo basico de Capa 2 antes de validar STP:
   - VLAN 10,20,30,40 creadas.
   - Trunks en Fa0/1-3 con native VLAN 30 y allowed VLAN 10,20,30,40.
+ 
+Codigo separado recomendado (Backup-SW2):
+
+```bash
+enable
+configure terminal
+hostname Backup-SW2
+spanning-tree mode rapid-pvst
+
+vlan 10
+ name USUARIOS10
+vlan 20
+ name USUARIOS20
+vlan 30
+ name USUARIOS30
+vlan 40
+ name ADMIN
+exit
+
+interface range fa0/1 - 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+exit
+
+spanning-tree vlan 10,20 priority 8192
+spanning-tree vlan 30,40 priority 4096
+end
+copy running-config startup-config
+```
+
+modo trunk
+
+```bash
+enable
+configure terminal
+hostname Backup-SW2
+
+! 1) Modo STP igual al resto
+spanning-tree mode rapid-pvst
+
+! 2) VLANs
+vlan 10
+ name USUARIOS10
+vlan 20
+ name USUARIOS20
+vlan 30
+ name USUARIOS30
+vlan 40
+ name ADMIN
+exit
+
+! 3) Troncales (CLAVE)
+interface range fa0/1 - 3
+ switchport mode trunk
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+exit
+
+! 4) Prioridades STP (las que ya pusiste)
+spanning-tree vlan 10,20 priority 8192
+spanning-tree vlan 30,40 priority 4096
+
+end
+copy running-config startup-config
+```
+
 3. Reaplica prioridades STP de SW2 (punto 5):
 
 ```bash
