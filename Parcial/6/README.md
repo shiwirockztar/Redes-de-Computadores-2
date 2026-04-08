@@ -37,6 +37,19 @@ Gateways virtuales (FHRP):
 - VLAN 10, 20, 30 por Router-on-a-Stick (subinterfaces en G0/0).
 - VLAN 40 sin subinterfaces: interfaz fisica dedicada G0/1 en cada router, como puerto de acceso VLAN 40 en el switch.
 
+### 3.1 Conexiones fisicas Router-Switch (propuesta consistente con parciales anteriores)
+
+Tomando la topologia del parcial 4 (uplinks y EtherChannel ya ocupan varios puertos), se usan puertos libres para routers:
+
+| Equipo | Interfaz | Conecta con | Interfaz remota | Tipo |
+|---|---|---|---|---|
+| R1 | G0/0 | SW1 (Core) | Fa0/7 | Trunk VLAN 10,20,30 (nativa 30) |
+| R1 | G0/1 | SW1 (Core) | Fa0/8 | Access VLAN 40 |
+| R2 | G0/0 | SW2 (Distribucion) | Fa0/7 | Trunk VLAN 10,20,30 (nativa 30) |
+| R2 | G0/1 | SW2 (Distribucion) | Fa0/8 | Access VLAN 40 |
+
+Nota: si en tu archivo .pkt esos puertos ya estan en uso, conserva la misma logica (un puerto trunk para G0/0 y un puerto access VLAN 40 para G0/1) y ajusta numeracion.
+
 ## 4) Plan de IP por router
 
 ### R1
@@ -159,10 +172,12 @@ copy running-config startup-config
 
 ### Enlace de trunk al router (G0/0)
 
-En el puerto de switch que conecta a G0/0 de cada router:
+En este diseno:
+- SW1 Fa0/7 hacia R1 G0/0
+- SW2 Fa0/7 hacia R2 G0/0
 
 ```bash
-interface fa0/x
+interface fa0/7
  switchport mode trunk
  switchport trunk allowed vlan 10,20,30
  switchport trunk native vlan 30
@@ -170,10 +185,12 @@ interface fa0/x
 
 ### Enlace fisico de VLAN 40 al router (G0/1, sin subinterfaces)
 
-En el puerto de switch que conecta a G0/1 de cada router:
+En este diseno:
+- SW1 Fa0/8 hacia R1 G0/1
+- SW2 Fa0/8 hacia R2 G0/1
 
 ```bash
-interface fa0/y
+interface fa0/8
  switchport mode access
  switchport access vlan 40
  spanning-tree portfast
