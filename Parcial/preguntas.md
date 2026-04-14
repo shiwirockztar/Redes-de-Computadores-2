@@ -1,29 +1,47 @@
-me sucede que al borrar la interfaz g0/1 en el router 1 y hacer ping de un pc en vlan de administracion y vlan 10 falla, en cambio si borro la interfaz g0/0 en el router 1 y hacer ping de un pc en vlan de administracion y vlan 10 sale exitosa
+# Preguntas y respuestas - Parcial
 
+Este documento organiza las dudas frecuentes del parcial y su explicacion tecnica.
 
-Eso que describes es coherente con la topología típica de router-on-a-stick en R1.
+## 1) ¿Por que al apagar G0/1 en R1 falla el ping entre VLAN de administracion y VLAN 10?
 
-La diferencia suele ser esta:
+### Situacion observada
 
-Si borras g0/1 en R1:
+- Si se elimina o apaga G0/1 en R1, el ping entre un PC de administracion y un PC en VLAN 10 falla.
+- Si se elimina o apaga G0/0 en R1, ese mismo ping puede seguir funcionando.
 
-Ahí normalmente están las subinterfaces de las VLAN (ejemplo: .10, .99 administración) con encapsulación 802.1Q.
-Al eliminarla, desaparece el gateway de esas VLAN.
-Resultado: el tráfico entre VLAN administración y VLAN 10 falla.
-Si borras g0/0 en R1:
+### Explicacion tecnica
 
-Esa interfaz suele ser hacia otra red/router, no la que hace el enrutamiento entre esas dos VLAN locales.
-Mientras g0/1 y sus subinterfaces sigan arriba, el inter-VLAN local sigue funcionando.
-Resultado: ping entre administración y VLAN 10 exitoso.
-En resumen: el ping entre esas dos VLAN depende de la interfaz trunk con subinterfaces (probablemente g0/1), no de g0/0.
+Esto es normal cuando la interfaz que transporta el enrutamiento inter-VLAN (router-on-a-stick o enlace de gateway para esas VLAN) es G0/1.
 
-Para comprobarlo rápido en R1:
+- Si G0/1 contiene las subinterfaces de VLAN (por ejemplo .10 y la de administracion), al caer esa interfaz se pierde el gateway de esas redes.
+- Sin gateway, no hay enrutamiento entre VLANs, por eso el ping falla.
+- Si G0/0 no participa en ese flujo local entre VLAN 10 y administracion, su caida no afecta ese ping especifico.
 
+Resumen: la conectividad entre VLAN 10 y administracion depende de la interfaz donde viven sus gateways (fisicos o subinterfaces), no de cualquier interfaz del router.
 
-Qué deberías ver para que funcione:
+## 2) Verificacion rapida recomendada
 
-Subinterfaces de VLAN 10 y administración en estado up/up.
-encapsulation dot1Q correcto por VLAN.
-IP de gateway correcta en cada subinterfaz.
-En el switch, el puerto hacia R1 en trunk permitiendo esas VLAN.
-Si quieres, te ayudo a validar tu configuración exacta línea por línea y te digo cuál comando está causando ese comportamiento.
+En R1:
+
+1. `show ip interface brief`
+2. `show running-config interface g0/1`
+3. `show running-config interface g0/1.10`
+4. `show running-config interface g0/1.40`
+5. `show ip route`
+
+En el switch conectado a R1:
+
+1. `show interfaces trunk`
+2. `show vlan brief`
+
+## 3) ¿Que debe estar correcto para que funcione?
+
+- Subinterfaces o interfaz de gateway en estado up/up.
+- `encapsulation dot1Q` correcta por VLAN (si aplica).
+- IP de gateway correcta en cada VLAN.
+- Puerto del switch hacia R1 en modo trunk (si aplica) y con VLAN 10 + VLAN de administracion permitidas.
+- Puerta de enlace correcta configurada en los PCs.
+
+## 4) Conclusión
+
+El comportamiento reportado es coherente con el diseno: al apagar la interfaz que presta servicio de gateway a las VLAN involucradas, el trafico inter-VLAN deja de funcionar. Si se apaga una interfaz no usada en ese trayecto, el ping se mantiene.
