@@ -10,65 +10,71 @@ Configurar y utilizar Telnet para conectarse a dispositivos de red desde Windows
 
 **Red asignada:** `192.168.78.0/24` (256 direcciones)
 
-**División de subredes:**
+**Cinco redes requeridas:**
 
-| Subred | CIDR | Rango | Hosts útiles | Uso |
-| --- | --- | --- | --- | --- |
-| 192.168.78.0 | /26 | 192.168.78.0 - 192.168.78.63 | 62 | LAN_A |
-| 192.168.78.64 | /26 | 192.168.78.64 - 192.168.78.127 | 62 | LAN_B |
-| 192.168.78.128 | /26 | 192.168.78.128 - 192.168.78.191 | 62 | LAN_C |
-| 192.168.78.192 | /29 | 192.168.78.192 - 192.168.78.199 | 6 | Enlace R3-R4 (Serial) |
-| 192.168.78.200 | /29 | 192.168.78.200 - 192.168.78.207 | 6 | Gestión/Switch1 (Reserva) |
+| # | RED | CIDR | Rango | Hosts útiles | Dispositivos |
+| --- | --- | --- | --- | --- | --- |
+| 1 | LAN_A | /26 | 192.168.78.0 - 192.168.78.63 | 62 | LAN_A ↔ R1 |
+| 2 | LAN_B | /26 | 192.168.78.64 - 192.168.78.127 | 62 | LAN_B ↔ R2 |
+| 3 | Switch1 | /26 | 192.168.78.128 - 192.168.78.191 | 62 | R1, R2, R3 ↔ Switch1 |
+| 4 | R3-R4 | /29 | 192.168.78.192 - 192.168.78.199 | 6 | R3 ↔ R4 (Serial) |
+| 5 | LAN_C | /29 | 192.168.78.200 - 192.168.78.207 | 6 | R4 ↔ LAN_C |
 
 ### 2.2 Asignación de direcciones por segmento
 
-#### **Segmento LAN_A (192.168.78.0/26)**
-| Dispositivo | Interfaz | Dirección IP | Gateway |
+#### **Red 1: LAN_A (192.168.78.0/26)**
+| Dispositivo | Interfaz | Dirección IP | Rol |
 | --- | --- | --- | --- |
-| R1 | Fa0/0 | 192.168.78.1 | - |
-| LAN_A | Ethernet | 192.168.78.10 | 192.168.78.1 |
+| R1 | Fa0/0 | 192.168.78.1 | Gateway |
+| LAN_A | Ethernet | 192.168.78.10 | PC cliente |
 | Broadcast | - | 192.168.78.63 | - |
 
-#### **Segmento LAN_B (192.168.78.64/26)**
-| Dispositivo | Interfaz | Dirección IP | Gateway |
+#### **Red 2: LAN_B (192.168.78.64/26)**
+| Dispositivo | Interfaz | Dirección IP | Rol |
 | --- | --- | --- | --- |
-| R2 | Fa0/0 | 192.168.78.65 | - |
-| LAN_B | Ethernet | 192.168.78.74 | 192.168.78.65 |
+| R2 | Fa0/0 | 192.168.78.65 | Gateway |
+| LAN_B | Ethernet | 192.168.78.74 | PC cliente |
 | Broadcast | - | 192.168.78.127 | - |
 
-#### **Segmento LAN_C (192.168.78.128/26)**
-| Dispositivo | Interfaz | Dirección IP | Gateway |
+#### **Red 3: Switch1 (192.168.78.128/26)**
+| Dispositivo | Interfaz | Dirección IP | Rol |
 | --- | --- | --- | --- |
-| R4 | Fa0/0 | 192.168.78.129 | - |
-| LAN_C | Ethernet | 192.168.78.138 | 192.168.78.129 |
+| R1 | Fa0/1 | 192.168.78.129 | Router |
+| R2 | Fa0/1 | 192.168.78.130 | Router |
+| R3 | Fa0/0 | 192.168.78.131 | Router |
+| Switch1 | VLAN 1 (mgmt) | 192.168.78.132 | Switch gestión |
 | Broadcast | - | 192.168.78.191 | - |
 
-#### **Enlace Serial R3-R4 (192.168.78.192/29)**
-| Dispositivo | Interfaz | Dirección IP |
-| --- | --- | --- |
-| R3 | s0/0 | 192.168.78.193 |
-| R4 | s0/0 | 192.168.78.194 |
-| Broadcast | - | 192.168.78.199 |
+#### **Red 4: Enlace R3-R4 (192.168.78.192/29)**
+| Dispositivo | Interfaz | Dirección IP | Rol |
+| --- | --- | --- | --- |
+| R3 | s0/0 | 192.168.78.193 | Router |
+| R4 | s0/0 | 192.168.78.194 | Router |
+| Broadcast | - | 192.168.78.199 | - |
 
-#### **Gestión Switch1 (192.168.78.200/29)** - Reserva
-| Dispositivo | Interfaz | Dirección IP |
-| --- | --- | --- |
-| Switch1 | VLAN 1 (mgmt) | 192.168.78.201 |
-| Gateway | - | 192.168.78.200 |
-| Broadcast | - | 192.168.78.207 |
+#### **Red 5: LAN_C (192.168.78.200/29)**
+| Dispositivo | Interfaz | Dirección IP | Rol |
+| --- | --- | --- | --- |
+| R4 | Fa0/0 | 192.168.78.201 | Gateway |
+| LAN_C | Ethernet | 192.168.78.202 | PC cliente |
+| Broadcast | - | 192.168.78.207 | - |
 
 ### 2.3 Tabla de direcciones resumen
 
-| Dispositivo | Tipo | Dirección IP | Máscara |
-| --- | --- | --- | --- |
-| R1 (Fa0/0) | Router | 192.168.78.1 | 255.255.255.192 |
-| R2 (Fa0/0) | Router | 192.168.78.65 | 255.255.255.192 |
-| R3 (s0/0) | Router | 192.168.78.193 | 255.255.255.248 |
-| R4 (Fa0/0) | Router | 192.168.78.129 | 255.255.255.192 |
-| R4 (s0/0) | Router | 192.168.78.194 | 255.255.255.248 |
-| LAN_A | PC | 192.168.78.10 | 255.255.255.192 |
-| LAN_B | PC | 192.168.78.74 | 255.255.255.192 |
-| LAN_C | PC | 192.168.78.138 | 255.255.255.192 |
+| Dispositivo | Interfaz | Dirección IP | Máscara | Red |
+| --- | --- | --- | --- | --- |
+| R1 | Fa0/0 | 192.168.78.1 | 255.255.255.192 | LAN_A |
+| R1 | Fa0/1 | 192.168.78.129 | 255.255.255.192 | Switch1 |
+| R2 | Fa0/0 | 192.168.78.65 | 255.255.255.192 | LAN_B |
+| R2 | Fa0/1 | 192.168.78.130 | 255.255.255.192 | Switch1 |
+| R3 | Fa0/0 | 192.168.78.131 | 255.255.255.192 | Switch1 |
+| R3 | s0/0 | 192.168.78.193 | 255.255.255.248 | R3-R4 |
+| R4 | Fa0/0 | 192.168.78.201 | 255.255.255.248 | LAN_C |
+| R4 | s0/0 | 192.168.78.194 | 255.255.255.248 | R3-R4 |
+| Switch1 | VLAN 1 | 192.168.78.132 | 255.255.255.192 | Switch1 |
+| LAN_A | Ethernet | 192.168.78.10 | 255.255.255.192 | LAN_A |
+| LAN_B | Ethernet | 192.168.78.74 | 255.255.255.192 | LAN_B |
+| LAN_C | Ethernet | 192.168.78.202 | 255.255.255.248 | LAN_C |
 
 ## 3. Topología GNS3
 
@@ -129,6 +135,7 @@ ip 192.168.78.10/26 192.168.78.1
 - Dirección IP: 192.168.78.10
 - Máscara: 255.255.255.192 (/26)
 - Gateway: 192.168.78.1 (R1)
+- Red: LAN_A
 
 #### **Configuración de LAN_B**
 ```bash
@@ -137,14 +144,16 @@ ip 192.168.78.74/26 192.168.78.65
 - Dirección IP: 192.168.78.74
 - Máscara: 255.255.255.192 (/26)
 - Gateway: 192.168.78.65 (R2)
+- Red: LAN_B
 
 #### **Configuración de LAN_C**
 ```bash
-ip 192.168.78.138/26 192.168.78.129
+ip 192.168.78.202/29 192.168.78.201
 ```
-- Dirección IP: 192.168.78.138
-- Máscara: 255.255.255.192 (/26)
-- Gateway: 192.168.78.129 (R4)
+- Dirección IP: 192.168.78.202
+- Máscara: 255.255.255.248 (/29)
+- Gateway: 192.168.78.201 (R4)
+- Red: LAN_C
 
 ## 5. Habilitar Telnet en Windows
 
@@ -169,14 +178,14 @@ Donde `500x` es el puerto asignado al dispositivo.
 
 | Dispositivo | Puerto | Comando |
 | --- | --- | --- |
-| LAN_A | 5001 | `telnet localhost 5001` |
-| LAN_B | 5002 | `telnet localhost 5002` |
-| LAN_C | 5003 | `telnet localhost 5003` |
-| R1 | 5004 | `telnet localhost 5004` |
-| R2 | 5005 | `telnet localhost 5005` |
-| R3 | 5006 | `telnet localhost 5006` |
-| R4 | 5007 | `telnet localhost 5007` |
-| Switch1 | 5008 | `telnet localhost 5008` |
+| LAN_A | 5004 | `telnet localhost 5004` |
+| LAN_B | 5006 | `telnet localhost 5006` |
+| LAN_C | 5008 | `telnet localhost 5008` |
+| R1 | 5000 | `telnet localhost 5000` |
+| R2 | 5001 | `telnet localhost 5001` |
+| R3 | 5002 | `telnet localhost 5002` |
+| R4 | 5003 | `telnet localhost 5003` |
+| Switch1 | none | N/A |
 
 **Nota:** Los números de puerto pueden variar según la configuración de GNS3. Verificar en la consola o topología de GNS3 para obtener los puertos exactos.
 
