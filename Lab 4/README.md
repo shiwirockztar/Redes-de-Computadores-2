@@ -148,12 +148,37 @@ ip 192.168.78.138/26 192.168.78.129
 
 ## 5. Habilitar Telnet en Windows
 
-### Pasos:
+### 5.1 Pasos:
 
 1. Abre **Características de Windows** (Windows Features)
 2. Busca **Telnet Client**
 3. Marca la casilla para activar
 4. Aplica los cambios y reinicia si es necesario
+
+### 5.2 Conectarse a los equipos por Telnet desde GNS3
+
+En GNS3, cada dispositivo está mapeado a un puerto local. Para conectarse por Telnet a los equipos, se utiliza el comando:
+
+```bash
+telnet localhost 500x
+```
+
+Donde `500x` es el puerto asignado al dispositivo.
+
+#### **Puertos de conexión por Telnet:**
+
+| Dispositivo | Puerto | Comando |
+| --- | --- | --- |
+| LAN_A | 5001 | `telnet localhost 5001` |
+| LAN_B | 5002 | `telnet localhost 5002` |
+| LAN_C | 5003 | `telnet localhost 5003` |
+| R1 | 5004 | `telnet localhost 5004` |
+| R2 | 5005 | `telnet localhost 5005` |
+| R3 | 5006 | `telnet localhost 5006` |
+| R4 | 5007 | `telnet localhost 5007` |
+| Switch1 | 5008 | `telnet localhost 5008` |
+
+**Nota:** Los números de puerto pueden variar según la configuración de GNS3. Verificar en la consola o topología de GNS3 para obtener los puertos exactos.
 
 ## 6. Salir de Telnet
 
