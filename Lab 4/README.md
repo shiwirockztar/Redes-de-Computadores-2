@@ -126,7 +126,59 @@ ip <dirección_ip>/<máscara_bits> <dirección_gateway>
 - `/<máscara_bits>`: Notación CIDR de la máscara (ej: /26 = 255.255.255.192)
 - `<dirección_gateway>`: IP del gateway por defecto
 
-### 4.2 Configuración por equipos
+### 4.2 Acceso por Telnet a los equipos (antes de configurar IP)
+
+En GNS3, cada equipo puede abrirse por consola Telnet con el comando:
+
+```bash
+telnet localhost 500x
+```
+
+Donde `500x` es el puerto asignado al dispositivo.
+
+#### **Puertos de conexión por Telnet:**
+
+| Dispositivo | Puerto | Comando |
+| --- | --- | --- |
+| LAN_A | 5004 | `telnet localhost 5004` |
+| LAN_B | 5006 | `telnet localhost 5006` |
+| LAN_C | 5008 | `telnet localhost 5008` |
+| R1 | 5000 | `telnet localhost 5000` |
+| R2 | 5001 | `telnet localhost 5001` |
+| R3 | 5002 | `telnet localhost 5002` |
+| R4 | 5003 | `telnet localhost 5003` |
+| Switch1 | none | N/A |
+
+Nota: los números de puerto pueden variar según la configuración de GNS3. Switch1 sí tiene 3 conexiones físicas (con R1, R2 y R3), pero en esta práctica no tiene puerto Telnet local asignado (`none`).
+
+### 4.3 Flujo recomendado: Telnet + configuración IP en PCs
+
+1. Conéctate al equipo por Telnet.
+2. Ejecuta el comando `ip` con su máscara y gateway.
+3. Verifica conectividad con `ping` al gateway.
+
+#### **LAN_A**
+```bash
+telnet localhost 5004
+ip 192.168.78.10/26 192.168.78.1
+ping 192.168.78.1
+```
+
+#### **LAN_B**
+```bash
+telnet localhost 5006
+ip 192.168.78.74/26 192.168.78.65
+ping 192.168.78.65
+```
+
+#### **LAN_C**
+```bash
+telnet localhost 5008
+ip 192.168.78.202/29 192.168.78.201
+ping 192.168.78.201
+```
+
+### 4.4 Configuración por equipos
 
 #### **Configuración de LAN_A**
 ```bash
@@ -155,6 +207,21 @@ ip 192.168.78.202/29 192.168.78.201
 - Gateway: 192.168.78.201 (R4)
 - Red: LAN_C
 
+### 4.5 ¿Por qué se usa /26 si la red asignada es /24?
+
+La red `192.168.78.0/24` es la red base entregada para todo el laboratorio. Luego se divide en subredes más pequeñas (subneteo/VLSM) para separar los segmentos de la topología.
+
+En este laboratorio se definieron 5 redes:
+- LAN_A: `192.168.78.0/26`
+- LAN_B: `192.168.78.64/26`
+- Switch1: `192.168.78.128/26`
+- Enlace R3-R4: `192.168.78.192/29`
+- LAN_C: `192.168.78.200/29`
+
+Por eso, en LAN_A el comando correcto es `ip 192.168.78.10/26 192.168.78.1`: la IP del host y su gateway pertenecen a la subred `192.168.78.0/26`.
+
+Si se configurara `/24` en el host, el equipo asumiría que direcciones de otras subredes están en su misma red local, afectando la segmentación y el enrutamiento esperado.
+
 ## 5. Habilitar Telnet en Windows
 
 ### 5.1 Pasos:
@@ -164,30 +231,7 @@ ip 192.168.78.202/29 192.168.78.201
 3. Marca la casilla para activar
 4. Aplica los cambios y reinicia si es necesario
 
-### 5.2 Conectarse a los equipos por Telnet desde GNS3
-
-En GNS3, cada dispositivo está mapeado a un puerto local. Para conectarse por Telnet a los equipos, se utiliza el comando:
-
-```bash
-telnet localhost 500x
-```
-
-Donde `500x` es el puerto asignado al dispositivo.
-
-#### **Puertos de conexión por Telnet:**
-
-| Dispositivo | Puerto | Comando |
-| --- | --- | --- |
-| LAN_A | 5004 | `telnet localhost 5004` |
-| LAN_B | 5006 | `telnet localhost 5006` |
-| LAN_C | 5008 | `telnet localhost 5008` |
-| R1 | 5000 | `telnet localhost 5000` |
-| R2 | 5001 | `telnet localhost 5001` |
-| R3 | 5002 | `telnet localhost 5002` |
-| R4 | 5003 | `telnet localhost 5003` |
-| Switch1 | none | N/A |
-
-**Nota:** Los números de puerto pueden variar según la configuración de GNS3. Verificar en la consola o topología de GNS3 para obtener los puertos exactos.
+La conexión por Telnet a equipos y puertos de GNS3 está documentada en la sección **4.2**.
 
 ## 6. Salir de Telnet
 
