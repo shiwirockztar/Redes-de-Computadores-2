@@ -222,6 +222,241 @@ Por eso, en LAN_A el comando correcto es `ip 192.168.78.10/26 192.168.78.1`: la 
 
 Si se configurara `/24` en el host, el equipo asumiría que direcciones de otras subredes están en su misma red local, afectando la segmentación y el enrutamiento esperado.
 
+### 4.6 Configuración de R1 (Cisco IOS)
+
+En router Cisco, los comandos correctos son `configure terminal`, `interface fa...` e `ip address`.
+
+```bash
+enable
+configure terminal
+
+interface fa0/0
+ ip address 192.168.78.1 255.255.255.192
+ no shutdown
+
+interface fa0/1
+ ip address 192.168.78.129 255.255.255.192
+ no shutdown
+
+end
+write memory
+```
+
+Comandos abreviados equivalentes:
+
+```bash
+conf t
+int fa0/0
+ ip add 192.168.78.1 255.255.255.192
+ no shut
+int fa0/1
+ ip add 192.168.78.129 255.255.255.192
+ no shut
+end
+wr
+```
+
+### 4.7 Configuración de R2 (Cisco IOS)
+
+```bash
+enable
+configure terminal
+
+interface fa0/0
+ ip address 192.168.78.65 255.255.255.192
+ no shutdown
+
+interface fa0/1
+ ip address 192.168.78.130 255.255.255.192
+ no shutdown
+
+end
+write memory
+```
+
+Comandos abreviados equivalentes:
+
+```bash
+conf t
+int fa0/0
+ ip add 192.168.78.65 255.255.255.192
+ no shut
+int fa0/1
+ ip add 192.168.78.130 255.255.255.192
+ no shut
+end
+wr
+```
+
+### 4.8 Configuración de R3 (Cisco IOS)
+
+Nota: si tu interfaz serial es DCE, agrega `clock rate 64000` en `s0/0`.
+
+```bash
+enable
+configure terminal
+
+interface fa0/0
+ ip address 192.168.78.131 255.255.255.192
+ no shutdown
+
+interface s0/0
+ ip address 192.168.78.193 255.255.255.248
+ no shutdown
+
+end
+write memory
+```
+
+Comandos abreviados equivalentes:
+
+```bash
+conf t
+int fa0/0
+ ip add 192.168.78.131 255.255.255.192
+ no shut
+int s0/0
+ ip add 192.168.78.193 255.255.255.248
+ no shut
+end
+wr
+```
+
+### 4.9 Configuración de R4 (Cisco IOS)
+
+Nota: si tu interfaz serial es DCE, agrega `clock rate 64000` en `s0/0`.
+
+```bash
+enable
+configure terminal
+
+interface fa0/0
+ ip address 192.168.78.201 255.255.255.248
+ no shutdown
+
+interface s0/0
+ ip address 192.168.78.194 255.255.255.248
+ no shutdown
+
+end
+write memory
+```
+
+Comandos abreviados equivalentes:
+
+```bash
+conf t
+int fa0/0
+ ip add 192.168.78.201 255.255.255.248
+ no shut
+int s0/0
+ ip add 192.168.78.194 255.255.255.248
+ no shut
+end
+wr
+```
+
+### 4.10 Configuración de Switch1 (gestión)
+
+```bash
+enable
+configure terminal
+
+interface vlan 1
+ ip address 192.168.78.132 255.255.255.192
+ no shutdown
+
+ip default-gateway 192.168.78.129
+
+end
+write memory
+```
+
+Comandos abreviados equivalentes:
+
+```bash
+conf t
+int vlan 1
+ ip add 192.168.78.132 255.255.255.192
+ no shut
+ip default-gateway 192.168.78.129
+end
+wr
+```
+
+### 4.11 Rutas estáticas mínimas para conectividad entre redes
+
+Estas rutas permiten que todas las LAN se alcancen entre sí.
+
+#### **R1**
+```bash
+conf t
+ip route 192.168.78.64 255.255.255.192 192.168.78.130
+ip route 192.168.78.192 255.255.255.248 192.168.78.131
+ip route 192.168.78.200 255.255.255.248 192.168.78.131
+end
+wr
+```
+
+#### **R2**
+```bash
+conf t
+ip route 192.168.78.0 255.255.255.192 192.168.78.129
+ip route 192.168.78.192 255.255.255.248 192.168.78.131
+ip route 192.168.78.200 255.255.255.248 192.168.78.131
+end
+wr
+```
+
+#### **R3**
+```bash
+conf t
+ip route 192.168.78.0 255.255.255.192 192.168.78.129
+ip route 192.168.78.64 255.255.255.192 192.168.78.130
+ip route 192.168.78.200 255.255.255.248 192.168.78.194
+end
+wr
+```
+
+#### **R4**
+```bash
+conf t
+ip route 192.168.78.0 255.255.255.192 192.168.78.193
+ip route 192.168.78.64 255.255.255.192 192.168.78.193
+ip route 192.168.78.128 255.255.255.192 192.168.78.193
+end
+wr
+```
+
+### 4.12 Verificación rápida
+
+En cada router:
+
+```bash
+show ip interface brief
+show ip route
+```
+
+Pruebas sugeridas:
+
+```bash
+ping 192.168.78.1
+ping 192.168.78.65
+ping 192.168.78.131
+ping 192.168.78.194
+ping 192.168.78.201
+ping 192.168.78.202
+```
+
+### 4.13 Orden corto de configuración
+
+1. Abre la consola por Telnet con el puerto de cada equipo.
+2. Configura primero los routers R1, R2, R3 y R4.
+3. Configura Switch1 con su VLAN de gestión.
+4. Configura las PCs con `ip dirección/máscara gateway`.
+5. Agrega las rutas estáticas.
+6. Verifica con `show ip interface brief`, `show ip route` y `ping`.
+
 ## 5. Habilitar Telnet en Windows
 
 ### 5.1 Pasos:
