@@ -161,6 +161,7 @@ Nota: los números de puerto pueden variar según la configuración de GNS3. Swi
 ```bash
 telnet localhost 5004
 ip 192.168.78.10/26 192.168.78.1
+save
 ping 192.168.78.1
 ```
 
@@ -168,6 +169,7 @@ ping 192.168.78.1
 ```bash
 telnet localhost 5006
 ip 192.168.78.74/26 192.168.78.65
+save
 ping 192.168.78.65
 ```
 
@@ -175,6 +177,7 @@ ping 192.168.78.65
 ```bash
 telnet localhost 5008
 ip 192.168.78.202/29 192.168.78.201
+save
 ping 192.168.78.201
 ```
 
