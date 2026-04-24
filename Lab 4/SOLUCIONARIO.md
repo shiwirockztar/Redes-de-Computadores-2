@@ -96,7 +96,7 @@ Desde LAN_A (VPCS), hacia LAN_B:
 ping 192.168.78.74
 ```
 
-Salida esperada (fallo, aún no hay ruta remota):
+Salida esperada (fallo, aun no hay ruta remota):
 
 ```text
 Request timeout for icmp_seq 1
@@ -105,6 +105,22 @@ Request timeout for icmp_seq 3
 Request timeout for icmp_seq 4
 Request timeout for icmp_seq 5
 ```
+
+Tambien es normal ver rechazo explicito desde el gateway (R1):
+
+```text
+*192.168.78.1 icmp_seq=1 ttl=255 time=15.338 ms (ICMP type:3, code:1, Destination host unreachable)
+*192.168.78.1 icmp_seq=2 ttl=255 time=14.910 ms (ICMP type:3, code:1, Destination host unreachable)
+*192.168.78.1 icmp_seq=3 ttl=255 time=15.624 ms (ICMP type:3, code:1, Destination host unreachable)
+*192.168.78.1 icmp_seq=4 ttl=255 time=15.622 ms (ICMP type:3, code:1, Destination host unreachable)
+*192.168.78.1 icmp_seq=5 ttl=255 time=15.401 ms (ICMP type:3, code:1, Destination host unreachable)
+```
+
+Interpretacion de esa salida:
+
+1. LAN_A si llega a su gateway (192.168.78.1).
+2. El gateway R1 no sabe como llegar a 192.168.78.74.
+3. Por eso R1 devuelve ICMP tipo 3 codigo 1 (Destination host unreachable).
 
 Desde R3 (router), vecino directo por serial:
 
@@ -193,7 +209,7 @@ Prueba sugerida desde LAN_A hacia LAN_C (todavía incompleto en este punto):
 ping 192.168.78.202
 ```
 
-Salida esperada típica en esta etapa:
+Salida esperada tipica en esta etapa:
 
 ```text
 Request timeout for icmp_seq 1
@@ -202,6 +218,8 @@ Request timeout for icmp_seq 3
 Request timeout for icmp_seq 4
 Request timeout for icmp_seq 5
 ```
+
+Alternativamente, puede verse ICMP type:3 code:1 (Destination host unreachable) generado por el gateway intermedio.
 
 ## (d) Ruta por defecto en R1 y R2 + comandos en R3 y R4
 
@@ -392,7 +410,7 @@ Usa esta tabla como guion corto: ejecuta comando, muestra salida y concluye si c
 | Etapa | Prueba | Equipo origen | Comando | Resultado esperado |
 | --- | --- | --- | --- | --- |
 | Inicial (sin rutas estaticas) | Gateway local LAN_A | LAN_A (VPCS) | `ping 192.168.78.1` | Exitoso (responde). |
-| Inicial (sin rutas estaticas) | LAN_A a LAN_B | LAN_A (VPCS) | `ping 192.168.78.74` | Fallido (timeout). |
+| Inicial (sin rutas estaticas) | LAN_A a LAN_B | LAN_A (VPCS) | `ping 192.168.78.74` | Fallido (timeout o Destination host unreachable desde 192.168.78.1). |
 | Inicial (sin rutas estaticas) | Vecinos directos serial | R3 | `ping 192.168.78.194` | Exitoso (5/5). |
 | Despues de (c) | LAN_A a LAN_B | LAN_A (VPCS) | `ping 192.168.78.74` | Exitoso. |
 | Despues de (c) | LAN_A a LAN_C | LAN_A (VPCS) | `ping 192.168.78.202` | Aun puede fallar (si no esta completo el retorno). |
