@@ -322,6 +322,14 @@ end
 wr
 ```
 
+Comando que faltó (crítico en este caso real):
+
+```bash
+R3(config)# ip route 192.168.78.200 255.255.255.248 192.168.78.194
+```
+
+Si este comando no está, LAN_A puede llegar hasta R3 pero no a LAN_C, y aparece `Destination host unreachable` desde `192.168.78.131`.
+
 Verificación recomendada por equipo:
 
 En R3:
