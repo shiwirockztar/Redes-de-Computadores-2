@@ -367,6 +367,87 @@ Y en el lado DCE del serial, configurar reloj (ejemplo):
 clock rate 64000
 ```
 
+### Procedimiento preventivo y de troubleshooting (usar siempre antes de sustentar)
+
+Aplicar este flujo en orden reduce casi por completo los errores repetitivos del literal (d).
+
+#### 1) Checklist preventivo previo (antes de probar ping extremo a extremo)
+
+En todos los routers (R1, R2, R3, R4):
+
+```bash
+show ip interface brief
+show ip route static
+```
+
+Validar obligatoriamente:
+
+1. Interfaces de trabajo en `up/up`.
+2. R1 y R2 con ruta por defecto a `192.168.78.131`.
+3. R3 con rutas de retorno a `192.168.78.0/26` y `192.168.78.64/26`.
+4. R3 con ruta a LAN_C: `192.168.78.200/29` via `192.168.78.194`.
+5. R4 con rutas de retorno a LAN_A y LAN_B via `192.168.78.193`.
+
+En hosts VPCS:
+
+```bash
+show ip
+```
+
+Validar IP, máscara y gateway de cada LAN, especialmente LAN_C:
+
+- IP: `192.168.78.202`
+- Mask: `255.255.255.248`
+- Gateway: `192.168.78.201`
+
+#### 2) Flujo de diagnóstico por capas (cuando un ping falla)
+
+Orden recomendado de pruebas:
+
+1. Host -> gateway local.
+2. Router intermedio -> vecino directo.
+3. Router intermedio -> host final.
+4. Host origen -> host final.
+5. `trace` desde host origen para ubicar el salto donde muere el tráfico.
+
+Comandos rápidos:
+
+```bash
+# En VPCS
+ping <gateway_local>
+ping <destino_final>
+trace <destino_final>
+
+# En routers
+show ip route <red_destino>
+ping <next-hop>
+ping <host_destino>
+```
+
+#### 3) Matriz rápida: síntoma -> causa probable -> corrección
+
+| Síntoma observado | Causa probable | Verificación | Corrección típica |
+| --- | --- | --- | --- |
+| `ICMP type:3 code:1` desde `192.168.78.1` | R1 sin ruta para red remota | `show ip route <red_remota>` en R1 | Ajustar default o ruta específica en R1. |
+| `ICMP type:3 code:1` desde `192.168.78.131` | R3 sin ruta a LAN_C | `show ip route 192.168.78.200` en R3 | `ip route 192.168.78.200 255.255.255.248 192.168.78.194` |
+| R3 llega a `192.168.78.194` pero no a `192.168.78.202` | Problema en Fa0/0 de R4 o en LAN_C | `show ip int brief` en R4, `show ip` en LAN_C | Corregir IP/máscara/GW de LAN_C o levantar Fa0/0. |
+| `trace` se queda en R3 y no pasa a R4 | Falta ruta o retorno incompleto | Revisar rutas estáticas en R3 y R4 | Completar rutas ida y vuelta. |
+| Serial `down/down` o `administratively down` | Interfaz apagada o sin clock DCE | `show ip int brief`, `show controllers serial` | `no shutdown` y `clock rate` en lado DCE. |
+
+#### 4) Secuencia de cierre (evidencia final para entregar)
+
+1. En R3: `show ip route 192.168.78.200`
+2. En R4: `show ip interface brief`
+3. En LAN_A: `ping 192.168.78.202`
+4. En LAN_A: `trace 192.168.78.202`
+
+Resultado esperado de cierre:
+
+- Ping exitoso extremo a extremo.
+- Trazado por `192.168.78.1 -> 192.168.78.131 -> 192.168.78.194 -> 192.168.78.202`.
+
+Con este flujo, cualquier falla queda acotada en pocos comandos y se corrige sin rehacer toda la configuración.
+
 ## (e) Conectividad entre topologías de compañeros con una ruta por vecino
 
 Se pide una ruta estática por router para cada topología vecina conectada a la red del laboratorio.
