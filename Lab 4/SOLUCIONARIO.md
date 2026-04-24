@@ -72,6 +72,55 @@ Conectividad esperada **antes** de agregar rutas estáticas:
 - Entre routers, ping exitoso solo entre vecinos directos (por ejemplo R3 <-> R4 por serial).
 - Ping fallido entre LAN_A y LAN_B, LAN_A y LAN_C, LAN_B y LAN_C.
 
+### Ejemplos de verificación (estado inicial, sin rutas estáticas)
+
+Desde LAN_A (VPCS):
+
+```bash
+ping 192.168.78.1
+```
+
+Salida esperada (éxito hacia gateway local):
+
+```text
+84 bytes from 192.168.78.1 icmp_seq=1 ttl=255 time=1.2 ms
+84 bytes from 192.168.78.1 icmp_seq=2 ttl=255 time=0.9 ms
+84 bytes from 192.168.78.1 icmp_seq=3 ttl=255 time=1.1 ms
+84 bytes from 192.168.78.1 icmp_seq=4 ttl=255 time=1.0 ms
+84 bytes from 192.168.78.1 icmp_seq=5 ttl=255 time=1.1 ms
+```
+
+Desde LAN_A (VPCS), hacia LAN_B:
+
+```bash
+ping 192.168.78.74
+```
+
+Salida esperada (fallo, aún no hay ruta remota):
+
+```text
+Request timeout for icmp_seq 1
+Request timeout for icmp_seq 2
+Request timeout for icmp_seq 3
+Request timeout for icmp_seq 4
+Request timeout for icmp_seq 5
+```
+
+Desde R3 (router), vecino directo por serial:
+
+```bash
+ping 192.168.78.194
+```
+
+Salida esperada (éxito entre vecinos directos):
+
+```text
+Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to 192.168.78.194, timeout is 2 seconds:
+!!!!!
+Success rate is 100 percent (5/5)
+```
+
 Explicación con tablas de enrutamiento (`show ip route`):
 
 - Cada router solo conoce rutas `C` (Connected) y `L` (Local) de sus interfaces activas.
@@ -114,6 +163,45 @@ Recorrido de un paquete de red de R2 a red de R1 (ejemplo LAN_B -> LAN_A):
 2. R2 consulta tabla y encuentra ruta estática a `192.168.78.0/26` vía `192.168.78.129`.
 3. R2 reencapsula con MAC de R1 (resuelta por ARP) y reenvía por `Fa0/1`.
 4. R1 recibe, detecta que `192.168.78.0/26` está conectada por `Fa0/0` y entrega al host destino.
+
+### Verificación después de (c)
+
+Después de configurar solo las rutas estáticas entre R1 y R2, debe cumplirse:
+
+- LAN_A <-> LAN_B: éxito.
+- LAN_A/LAN_B hacia LAN_C: aún puede fallar, porque faltan rutas por defecto y retorno completo por R3/R4.
+
+Prueba sugerida desde LAN_A:
+
+```bash
+ping 192.168.78.74
+```
+
+Salida esperada:
+
+```text
+84 bytes from 192.168.78.74 icmp_seq=1 ttl=126 time=2.8 ms
+84 bytes from 192.168.78.74 icmp_seq=2 ttl=126 time=2.6 ms
+84 bytes from 192.168.78.74 icmp_seq=3 ttl=126 time=2.7 ms
+84 bytes from 192.168.78.74 icmp_seq=4 ttl=126 time=2.5 ms
+84 bytes from 192.168.78.74 icmp_seq=5 ttl=126 time=2.6 ms
+```
+
+Prueba sugerida desde LAN_A hacia LAN_C (todavía incompleto en este punto):
+
+```bash
+ping 192.168.78.202
+```
+
+Salida esperada típica en esta etapa:
+
+```text
+Request timeout for icmp_seq 1
+Request timeout for icmp_seq 2
+Request timeout for icmp_seq 3
+Request timeout for icmp_seq 4
+Request timeout for icmp_seq 5
+```
 
 ## (d) Ruta por defecto en R1 y R2 + comandos en R3 y R4
 
@@ -164,6 +252,39 @@ wr
 - Técnicamente sí, pero no siempre es conveniente.
 - Si a la derecha de la topología se agregan nuevas redes, una default mal orientada puede generar caminos subóptimos o loops.
 - En escenarios de crecimiento, conviene mantener rutas específicas (o migrar a enrutamiento dinámico).
+
+### Verificación después de (d)
+
+Con rutas por defecto en R1 y R2, y rutas de retorno en R3/R4, ya debe existir conectividad extremo a extremo.
+
+Desde LAN_A:
+
+```bash
+ping 192.168.78.202
+trace 192.168.78.202
+```
+
+Salida esperada del `ping`:
+
+```text
+84 bytes from 192.168.78.202 icmp_seq=1 ttl=124 time=8.1 ms
+84 bytes from 192.168.78.202 icmp_seq=2 ttl=124 time=7.9 ms
+84 bytes from 192.168.78.202 icmp_seq=3 ttl=124 time=8.0 ms
+84 bytes from 192.168.78.202 icmp_seq=4 ttl=124 time=8.2 ms
+84 bytes from 192.168.78.202 icmp_seq=5 ttl=124 time=7.8 ms
+```
+
+Salida esperada del `trace` (saltos de referencia):
+
+```text
+trace to 192.168.78.202, 8 hops max
+ 1   192.168.78.1
+ 2   192.168.78.131
+ 3   192.168.78.194
+ 4   192.168.78.202
+```
+
+Nota: los tiempos y TTL pueden variar según simulación/equipo, pero el criterio de evaluación es que pase de fallo a éxito cuando las rutas correctas están aplicadas.
 
 ## (e) Conectividad entre topologías de compañeros con una ruta por vecino
 
@@ -263,3 +384,25 @@ trace <ip_destino>
 ```
 
 Con estas verificaciones puedes justificar cada resultado de conectividad y el camino real de los paquetes.
+
+## Checklist rapido para sustentacion
+
+Usa esta tabla como guion corto: ejecuta comando, muestra salida y concluye si cumple.
+
+| Etapa | Prueba | Equipo origen | Comando | Resultado esperado |
+| --- | --- | --- | --- | --- |
+| Inicial (sin rutas estaticas) | Gateway local LAN_A | LAN_A (VPCS) | `ping 192.168.78.1` | Exitoso (responde). |
+| Inicial (sin rutas estaticas) | LAN_A a LAN_B | LAN_A (VPCS) | `ping 192.168.78.74` | Fallido (timeout). |
+| Inicial (sin rutas estaticas) | Vecinos directos serial | R3 | `ping 192.168.78.194` | Exitoso (5/5). |
+| Despues de (c) | LAN_A a LAN_B | LAN_A (VPCS) | `ping 192.168.78.74` | Exitoso. |
+| Despues de (c) | LAN_A a LAN_C | LAN_A (VPCS) | `ping 192.168.78.202` | Aun puede fallar (si no esta completo el retorno). |
+| Despues de (d) | LAN_A a LAN_C | LAN_A (VPCS) | `ping 192.168.78.202` | Exitoso extremo a extremo. |
+| Despues de (d) | Camino LAN_A a LAN_C | LAN_A (VPCS) | `trace 192.168.78.202` | Saltos esperados por R1 -> R3 -> R4 -> LAN_C. |
+| Validacion de rutas | Ver rutas estaticas | R1/R2/R3/R4 | `show ip route static` | Deben aparecer rutas `S` configuradas. |
+| Validacion de interfaz | Estado interfaces | R1/R2/R3/R4 | `show ip interface brief` | Interfaces usadas en `up/up`. |
+
+Tip rapido para exponer:
+
+1. Muestra primero un ping que falla (estado inicial).
+2. Aplica rutas y repite el mismo ping para evidenciar cambio a exito.
+3. Cierra con `trace` para justificar el recorrido.
