@@ -304,6 +304,69 @@ trace to 192.168.78.202, 8 hops max
 
 Nota: los tiempos y TTL pueden variar según simulación/equipo, pero el criterio de evaluación es que pase de fallo a éxito cuando las rutas correctas están aplicadas.
 
+### Notas de corrección rápida (cuando falla el literal d)
+
+Si desde LAN_A ves este patrón:
+
+- `ping 192.168.78.202` con `ICMP type:3, code:1` desde `192.168.78.131`.
+- `trace 192.168.78.202` llega a `192.168.78.131` y luego marca unreachable.
+
+Diagnóstico directo: el tráfico llega hasta R3, pero R3 no está alcanzando LAN_C (`192.168.78.200/29`) o el enlace serial R3-R4 no está operativo.
+
+Corrección mínima en R3:
+
+```bash
+conf t
+ip route 192.168.78.200 255.255.255.248 192.168.78.194
+end
+wr
+```
+
+Verificación recomendada por equipo:
+
+En R3:
+
+```bash
+show ip route 192.168.78.200
+show ip interface brief
+ping 192.168.78.194
+```
+
+En R4:
+
+```bash
+show ip interface brief
+show ip route 192.168.78.0
+show ip route 192.168.78.64
+```
+
+En LAN_A (VPCS):
+
+```bash
+ping 192.168.78.202
+trace 192.168.78.202
+```
+
+Criterio de éxito final:
+
+1. `ping` LAN_A -> LAN_C responde.
+2. `trace` muestra salto por `192.168.78.1 -> 192.168.78.131 -> 192.168.78.194 -> 192.168.78.202`.
+3. Interfaces clave (`R3 S0/0` y `R4 S0/0`) en estado `up/up`.
+
+Si la serial está down:
+
+```bash
+conf t
+interface s0/0
+no shutdown
+```
+
+Y en el lado DCE del serial, configurar reloj (ejemplo):
+
+```bash
+clock rate 64000
+```
+
 ## (e) Conectividad entre topologías de compañeros con una ruta por vecino
 
 Se pide una ruta estática por router para cada topología vecina conectada a la red del laboratorio.
