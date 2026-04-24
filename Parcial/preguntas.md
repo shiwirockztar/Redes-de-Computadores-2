@@ -16,11 +16,26 @@ Segun el diseno consolidado del parcial (puntos 1-2 hasta 6), el rol de interfac
 - G0/0: Router-on-a-Stick para VLAN 10, 20 y 30 (subinterfaces dot1Q).
 - G0/1: interfaz fisica dedicada a VLAN 40 (administracion), sin subinterfaces.
 
-Por eso, si se apaga G0/1 en R1, R1 pierde su conectividad directa en VLAN 40. El ping entre VLAN 10 y VLAN 40 puede fallar si en ese momento R1 estaba participando como camino efectivo para ese flujo (por estado HSRP, ARP y camino activo de la topologia).
+Por eso, si se apaga G0/1 en R1, R1 pierde la salida fisica que usa para la VLAN 40. Aunque exista R2 como respaldo, ese respaldo solo funciona si R2 esta configurado para tomar el rol de gateway de esa VLAN y la topologia ya convergio. Si eso no pasa todavia, el ping falla.
 
-En cambio, apagar G0/0 en R1 no siempre tumba inmediatamente ese ping en todos los casos, porque existe redundancia con R2 (principal/backup por VLAN). Con HSRP, el gateway virtual puede seguir disponible mediante el otro router, segun la convergencia del escenario.
+En cambio, apagar G0/0 en R1 no siempre tumba inmediatamente ese ping en todos los casos, porque el trafico de VLAN 10 puede seguir entrando por la ruta de respaldo que tiene HSRP con R2. Es decir, el respaldo existe para el gateway virtual, no para cualquier interfaz apagada.
 
-Resumen: la conectividad entre VLAN 10 y administracion depende de la interfaz donde viven sus gateways (fisicos o subinterfaces), no de cualquier interfaz del router.
+Resumen simple: R2 no es un respaldo "magico". Solo toma el control si la VLAN afectada tiene su gateway virtual, su configuracion HSRP y su camino de capa 2 y 3 listos para hacerlo.
+
+### Ejemplo facil de envio de tramas
+
+Supongamos que un PC de administracion quiere hacer ping a un PC en VLAN 10:
+
+1. El PC de administracion crea una trama Ethernet con:
+	- MAC origen: la MAC del PC.
+	- MAC destino: la MAC del gateway virtual de VLAN 40 o del router activo.
+	- IP origen: la IP del PC de administracion.
+	- IP destino: la IP del PC en VLAN 10.
+2. El switch envia esa trama hacia el router que tenga activo el gateway.
+3. Si G0/1 de R1 esta activo, R1 recibe la trama, la enruta hacia VLAN 10 y la vuelve a encapsular con una nueva trama para esa VLAN.
+4. El PC de VLAN 10 responde con otra trama de vuelta hacia su gateway.
+5. Si G0/1 de R1 esta apagado, pero R2 no ha tomado correctamente el rol de gateway de VLAN 40, la primera trama ya no tiene por donde salir y el ping falla.
+6. Si R2 si tomo el rol de respaldo, entonces la trama entra por R2, cruza la ruta activa y el ping sigue funcionando.
 
 ## 2) Verificacion rapida recomendada
 
@@ -70,7 +85,7 @@ El comportamiento reportado es coherente con el diseno: al apagar la interfaz qu
 
 ## 6) Respuesta corta para sustentacion oral
 
-"En este parcial, G0/0 en los routers transporta VLAN 10, 20 y 30 por subinterfaces dot1Q, mientras que VLAN 40 va por G0/1 fisica, sin subinterfaces. Por eso, si bajo G0/1 en R1, afecto la salida de R1 hacia administracion y el ping entre VLAN 10 y 40 puede fallar segun el estado de HSRP y la convergencia. Si bajo G0/0 en R1, no siempre se cae todo porque existe redundancia con R2. En resumen, el efecto depende de donde vive el gateway de cada VLAN y de cual router esta activo en ese momento." 
+"En este parcial, G0/0 en los routers transporta VLAN 10, 20 y 30 por subinterfaces dot1Q, mientras que VLAN 40 va por G0/1 fisica, sin subinterfaces. Si bajo G0/1 en R1, elimino la salida directa de R1 para administracion. R2 solo reemplaza ese camino si HSRP ya le dio el rol activo y la red convergio. Si bajo G0/0 en R1, no siempre se cae todo porque el gateway virtual puede seguir por R2. En resumen, no basta con tener un respaldo: ese respaldo debe estar activo, configurado y alcanzable por capa 2 y 3." 
 
 ## 7) Como se podria corregir si falla el ping
 
