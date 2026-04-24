@@ -458,25 +458,112 @@ Con este flujo, cualquier falla queda acotada en pocos comandos y se corrige sin
 
 ## (e) Conectividad entre topologías de compañeros con una ruta por vecino
 
-Se pide una ruta estática por router para cada topología vecina conectada a la red del laboratorio.
+Objetivo: conectar tu topología con las de tus compañeros usando la red compartida del laboratorio (Cloud en GNS3), agregando en R4 una ruta estática por cada topología vecina.
 
-Estrategia:
+### Paso 1: Preparar interfaz de R4 hacia Cloud
 
-1. Identificar para cada vecino su prefijo agregado (resumen de su topología).
-2. En R4 (router de borde hacia laboratorio), crear una ruta por cada topología vecina:
+La interfaz de R4 conectada al Cloud debe quedar en la red del laboratorio (no en `192.168.78.0/24`).
+
+Si el laboratorio entrega direcciones por DHCP:
 
 ```bash
 conf t
-ip route <RED_VECINO_1> <MASCARA> <NEXT_HOP_LAB_1>
-ip route <RED_VECINO_2> <MASCARA> <NEXT_HOP_LAB_2>
-...
+interface fa0/1
+ ip address dhcp
+ no shutdown
+end
+wr
+show ip interface brief
+```
+
+Si el laboratorio usa direccionamiento manual, configura en `fa0/1` la IP/máscara/gateway que te asignen para esa red compartida.
+
+### Paso 2: Definir qué red resumida anunciará cada compañero
+
+Como la topología es similar, cada compañero debe compartir:
+
+1. Red resumida de su topología (prefijo que representa su red interna).
+2. Su IP de R4 en la red Cloud (next-hop).
+
+### Paso 3: Configurar en tu R4 una ruta por cada compañero
+
+Plantilla general:
+
+```bash
+conf t
+ip route <RED_RESUMIDA_COMPA> <MASCARA> <IP_CLOUD_R4_COMPA>
 end
 wr
 ```
 
-3. En routers internos (R1, R2, R3), mantener salida hacia R4/R3 según diseño (default o rutas específicas).
+Ejemplo listo para 2 compañeros (reemplazar datos):
 
-Si hay 7 estudiantes, en R4 se agregan 6 rutas (una por cada topología vecina).
+```bash
+conf t
+ip route <RED_COMPA_1> <MASCARA_COMPA_1> <IP_CLOUD_COMPA_1>
+ip route <RED_COMPA_2> <MASCARA_COMPA_2> <IP_CLOUD_COMPA_2>
+end
+wr
+```
+
+Regla del enunciado: si son 7 estudiantes, en R4 deben quedar 6 rutas estáticas (una por cada vecino).
+
+### Paso 4: Asegurar salida desde routers internos
+
+Para llegar desde cualquier punto de tu red:
+
+1. R1 y R2 con salida hacia R3 (default o específicas).
+2. R3 con salida hacia R4 para redes externas.
+3. R4 con rutas estáticas por vecino (paso 3).
+
+### Paso 5: Rutas de retorno (obligatorio en cada compañero)
+
+Cada compañero debe agregar una ruta de retorno hacia tu red resumida usando tu IP Cloud en su R4.
+
+Plantilla para el compañero:
+
+```bash
+conf t
+ip route <TU_RED_RESUMIDA> <TU_MASCARA> <TU_IP_CLOUD_R4>
+end
+wr
+```
+
+Sin retorno, verás pings de ida que no responden.
+
+### Verificación mínima del numeral (e)
+
+En tu R4:
+
+```bash
+show ip interface brief
+show ip route static
+ping <IP_CLOUD_COMPA_1>
+ping <IP_CLOUD_COMPA_2>
+```
+
+Desde tu LAN_A o LAN_C:
+
+```bash
+ping <HOST_DE_LA_TOPOLOGIA_COMPA_1>
+trace <HOST_DE_LA_TOPOLOGIA_COMPA_1>
+```
+
+Resultado esperado:
+
+1. Tu R4 alcanza las IP Cloud de compañeros.
+2. Hosts de tu topología alcanzan hosts de topologías vecinas.
+3. `trace` muestra paso por R4 y luego por la red Cloud.
+
+### Troubleshooting rápido en (e)
+
+Si no hay conectividad, revisar en este orden:
+
+1. `fa0/1` de R4 en `up/up`.
+2. IP Cloud correcta en R4 (DHCP o manual según laboratorio).
+3. Next-hop de cada ruta apunta a la IP Cloud del R4 vecino (no a su LAN interna).
+4. Existe ruta de retorno en el R4 del compañero hacia tu red.
+5. No hay solapamiento de prefijos entre topologías.
 
 ## (f) ¿Qué pasa si todos configuran solo ruta por defecto?
 
