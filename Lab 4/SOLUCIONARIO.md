@@ -520,6 +520,51 @@ trace <HOST_COMPA_1>
 2. Revisar que el next-hop sea la IP Cloud del compañero (no su IP LAN interna).
 3. Confirmar ruta de retorno en el R4 del compañero.
 
+### Lista corta de pasos para conectarte a un compañero
+
+1. Conectar `R4 Fa0/1` al `Cloud` en GNS3.
+2. Confirmar que `Fa0/1` obtuvo IP por DHCP con `show ip interface brief`.
+	- Resultado obtenido en esta práctica: `Fa0/1 = 192.168.0.106` (esta es tu `IP_CLOUD`).
+
+ 
+```bash  
+R4#show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+FastEthernet0/0            192.168.78.201  YES NVRAM  up                    up      
+Serial0/0                  192.168.78.194  YES NVRAM  up                    up      
+FastEthernet0/1            192.168.0.106   YES DHCP   up                    up      
+Serial0/1                  unassigned      YES NVRAM  administratively down down    
+Serial0/2                  unassigned      YES NVRAM  administratively down down    
+Serial0/3                  unassigned      YES NVRAM  administratively down down    
+FastEthernet1/0            unassigned      YES NVRAM  administratively down down    
+FastEthernet2/0            unassigned      YES NVRAM  administratively down down    
+FastEthernet3/0            unassigned      YES NVRAM  administratively down down 
+```
+3. Pedir a tu compañero su IP Cloud en su R4 (ejemplo: `192.168.0.X`).
+4. En tu R4, crear ruta a su red interna (`192.168.3.0/24`) usando su IP Cloud como next-hop.
+5. Pedir al compañero que cree ruta de retorno a tu red (`192.168.78.0/24`) usando tu IP Cloud (`192.168.0.106`).
+6. Probar conectividad primero entre R4 por Cloud y luego desde un host de tu LAN.
+
+Comandos rápidos (tu lado):
+
+```bash
+show ip interface brief
+conf t
+ip route 192.168.3.0 255.255.255.0 <IP_CLOUD_R4_COMPANERO>
+end
+wr
+ping <IP_CLOUD_R4_COMPANERO>
+```
+
+Comando de retorno (lado compañero):
+
+```bash
+conf t
+ip route 192.168.78.0 255.255.255.0 192.168.0.106
+end
+wr
+```
+
 ## (f) ¿Qué pasa si todos configuran solo ruta por defecto?
 
 Si todos usan únicamente default routes:
