@@ -31,28 +31,39 @@ Para que R2 sirva como respaldo real, debe cumplir estos **requisitos previos ob
 **En R2 debes replicar:**
 
 ```
+enable
+configure terminal
+
+! Interfaz física hacia el switch
 interface g0/0
  no ip address
  no shutdown
 
+! VLAN 10
 interface g0/0.10
  encapsulation dot1Q 10
- ip address 10.10.8.1 255.255.255.0
+ ip address 10.10.8.1 255.255.255.192
  no shutdown
 
+! VLAN 20
 interface g0/0.20
  encapsulation dot1Q 20
- ip address 10.10.8.65 255.255.255.0
+ ip address 10.10.8.65 255.255.255.192
  no shutdown
 
+! VLAN 30
 interface g0/0.30
  encapsulation dot1Q 30
- ip address 10.10.8.129 255.255.255.0
+ ip address 10.10.8.129 255.255.255.192
  no shutdown
 
+! Otra red (por ejemplo hacia otro router o LAN)
 interface g0/1
- ip address 10.10.8.193 255.255.255.0
+ ip address 10.10.8.193 255.255.255.192
  no shutdown
+
+end
+write memory
 ```
 
 **Nota**: R1 y R2 pueden tener **addresses HSRP diferentes**, pero **las subinterfaces deben existir en ambos** para que el trafico inter-VLAN funcione.
