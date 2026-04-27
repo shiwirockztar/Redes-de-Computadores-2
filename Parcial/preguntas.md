@@ -124,3 +124,57 @@ Si al apagar o recuperar interfaces el ping entre VLAN 10 y VLAN 40 no responde,
 	- repetir ping entre hosts de VLAN 10 y 40.
 
 Regla practica: primero recupera capa 1/2 (interfaces, trunk, access, STP, EtherChannel) y luego capa 3 (subinterfaces, IPs y HSRP). Asi se resuelve mas rapido y con menor riesgo de cambiar algo que ya estaba bien.
+
+## 8) ¿Por qué al hacer ping hay inundaciones de ICMP al principio?
+
+### Situacion observada
+
+- Al hacer un primer ping entre dos VLAN, se ven multiples copias del ICMP request/reply en la captura de trafico.
+- Es normal ver inundaciones ARP, pero ¿por qué también aparecen inundaciones ICMP?
+- Despues de los primeros pings, la inundacion desaparece.
+
+### Explicacion tecnica
+
+La "inundacion ICMP" que observas **no es un problema de ICMP**, sino una consecuencia del **flooding de capa 2** (switching) cuando el switch desconoce las MAC destino.
+
+**Flujo del comportamiento:**
+
+1. El PC origen envia un **ICMP request unicast** hacia la MAC del gateway o del destino.
+2. El switch **no tiene esa MAC en su tabla CAM** (o la entrada expiro).
+3. El switch hace **flooding** del frame por todos los puertos de la VLAN (excepto el de entrada).
+4. Cada puerto que recibe el frame lo entrega a su VLAN, causando multiples copias del mismo ICMP.
+5. Los destinos responden con multiples **ICMP replies**.
+6. Despues de esto, el switch **aprende las MAC** en su tabla CAM y el flooding se detiene.
+
+### ¿Por qué se ve con ICMP y no solo con ARP?
+
+- **ARP flood es intencional**: ARP usa destinatario broadcast (FF-FF-FF-FF-FF-FF), es decir, esta diseñado para llegar a todos.
+- **ICMP flood es consecuencia de MAC desconocida**: ICMP va unicast con una MAC especifica, pero si el switch no conoce esa MAC, hace flooding.
+
+### Esto es completamente normal cuando:
+
+- El switch acaba de arrancar o cargó la topologia.
+- La tabla MAC del switch no esta llena o expiro la entrada.
+- Hay convergencia de STP en curso.
+- Interfaces de router o switch acaban de levantarse.
+- Es el primer ping entre dos hosts en diferentes VLAN.
+
+### Para verificar que es esto en la captura:
+
+- **ICMP request unico** enviado por el origen.
+- **Multiples copias idénticas del ICMP request** llegando al destino (flooding del switch).
+- **Multiples ICMP replies** volviendo hacia el origen.
+- Despues de algunos pings, todas las MAC estan aprendidas y el flooding cesa.
+
+### Respuesta corta para sustentacion oral
+
+"El flooding ICMP que se ve al principio no es un fallo de ICMP ni del router. Es el switch haciendo flooding en capa 2 porque no conoce la MAC destino. ARP flood es intencional (broadcast), pero ICMP va unicast, entonces cuando el switch no lo conoce, lo inunda por todos los puertos de la VLAN. Una vez que el switch aprende las MAC en su tabla CAM (despues de los primeros pings), el flooding desaparece. Es normal y esperado durante la fase de convergencia de la red."
+
+### Como evitarlo o minimizarlo:
+
+1. Usar `portfast` en puertos de acceso de PCs (no en puertos troncales).
+2. Asegurar que STP converja correctamente: `show spanning-tree vlan X`.
+3. Mantener las MAC aging time adecuadas (default 300s es suficiente).
+4. En topologias muy grandes, usar `bpdu guard` y `root guard` para estabilidad.
+
+La practica muestra que esto **desaparece naturalmente** despues de los primeros intercambios, confirmando que es solo un fallo temporal de aprendizaje de MAC, no un problema estructural.
