@@ -349,10 +349,19 @@ En R3, agregar rutas específicas para alcanzar LAN_A y LAN_B:
 ```bash
 conf t
 ip route 192.168.XX.0 255.255.255.192 192.168.XX.129
+ip route 192.168.78.200 255.255.255.248 192.168.78.194
 ip route 192.168.XX.64 255.255.255.192 192.168.XX.130
 end
 wr
 ```
+Si desde LAN_A ves este patrón (si por ejemplo no anexas 
+ip route 192.168.78.200 255.255.255.248 192.168.78.194):
+
+- `ping 192.168.78.202` con `ICMP type:3, code:1` desde `192.168.78.131`.
+- `trace 192.168.78.202` llega a `192.168.78.131` y luego marca unreachable.
+
+Diagnóstico directo: el tráfico llega hasta R3, pero R3 no está alcanzando LAN_C (`192.168.78.200/29`) o el enlace serial R3-R4 no está operativo.
+
 
 En R4, agregar rutas que apunten hacia R3 para cualquier destino en redes de R1 y R2:
 ```bash
