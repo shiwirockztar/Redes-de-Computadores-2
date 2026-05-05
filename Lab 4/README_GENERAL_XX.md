@@ -41,6 +41,52 @@ end
 wr
 ```
 
+### Paso 1.1 Configurar PCs de las LAN (VPCS)
+
+LAN_A:
+```bash
+ip 192.168.XX.10/26 192.168.XX.1
+save
+ping 192.168.XX.1
+```
+
+LAN_B:
+```bash
+ip 192.168.XX.74/26 192.168.XX.65
+save
+ping 192.168.XX.65
+```
+
+LAN_C:
+```bash
+ip 192.168.XX.202/29 192.168.XX.201
+save
+ping 192.168.XX.201
+```
+
+Si usas Linux en vez de VPCS, el equivalente es:
+
+LAN_A (Linux):
+```bash
+ip addr add 192.168.XX.10/26 dev eth0
+ip route add default via 192.168.XX.1
+ping 192.168.XX.1
+```
+
+LAN_B (Linux):
+```bash
+ip addr add 192.168.XX.74/26 dev eth0
+ip route add default via 192.168.XX.65
+ping 192.168.XX.65
+```
+
+LAN_C (Linux):
+```bash
+ip addr add 192.168.XX.202/29 dev eth0
+ip route add default via 192.168.XX.201
+ping 192.168.XX.201
+```
+
 R2:
 ```bash
 conf t
