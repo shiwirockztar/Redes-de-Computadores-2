@@ -888,3 +888,142 @@ Para conectar con otra red, repite exactamente el mismo procedimiento:
 - Interfaz `fa0/1` de R4 en `shutdown`.
 - Cloud asociado a la interfaz equivocada del host.
 - Firewall del host o VM bloqueando ICMP.
+
+---
+
+## 9. Tabla de Direccionamiento para tu Red 192.168.XX.0/24
+
+### 9.1 Red base y subdivisión
+
+**Red asignada:** `192.168.XX.0/24` (256 direcciones)
+
+**Cinco redes requeridas:**
+
+| # | RED | CIDR | Rango | Hosts útiles | Dispositivos |
+| --- | --- | --- | --- | --- | --- |
+| 1 | LAN_A | /26 | 192.168.XX.0 - 192.168.XX.63 | 62 | LAN_A ↔ R1 |
+| 2 | LAN_B | /26 | 192.168.XX.64 - 192.168.XX.127 | 62 | LAN_B ↔ R2 |
+| 3 | Switch1 | /26 | 192.168.XX.128 - 192.168.XX.191 | 62 | R1, R2, R3 ↔ Switch1 |
+| 4 | R3-R4 | /29 | 192.168.XX.192 - 192.168.XX.199 | 6 | R3 ↔ R4 (Serial) |
+| 5 | LAN_C | /29 | 192.168.XX.200 - 192.168.XX.207 | 6 | R4 ↔ LAN_C |
+
+### 9.2 Tabla de direcciones resumen
+
+| Dispositivo | Interfaz | Dirección IP | Máscara | Red |
+| --- | --- | --- | --- | --- |
+| R1 | Fa0/0 | 192.168.XX.1 | 255.255.255.192 | LAN_A |
+| R1 | Fa0/1 | 192.168.XX.129 | 255.255.255.192 | Switch1 |
+| R2 | Fa0/0 | 192.168.XX.65 | 255.255.255.192 | LAN_B |
+| R2 | Fa0/1 | 192.168.XX.130 | 255.255.255.192 | Switch1 |
+| R3 | Fa0/0 | 192.168.XX.131 | 255.255.255.192 | Switch1 |
+| R3 | s0/0 | 192.168.XX.193 | 255.255.255.248 | R3-R4 |
+| R4 | Fa0/0 | 192.168.XX.201 | 255.255.255.248 | LAN_C |
+| R4 | s0/0 | 192.168.XX.194 | 255.255.255.248 | R3-R4 |
+| Switch1 | VLAN 1 | 192.168.XX.132 | 255.255.255.192 | Switch1 |
+| LAN_A | Ethernet | 192.168.XX.10 | 255.255.255.192 | LAN_A |
+| LAN_B | Ethernet | 192.168.XX.74 | 255.255.255.192 | LAN_B |
+| LAN_C | Ethernet | 192.168.XX.202 | 255.255.255.248 | LAN_C |
+
+### 9.3 Puertos de conexión por Telnet (GNS3)
+
+| Dispositivo | Puerto | Comando |
+| --- | --- | --- |
+| LAN_A | 5004 | `telnet localhost 5004` |
+| LAN_B | 5006 | `telnet localhost 5006` |
+| LAN_C | 5008 | `telnet localhost 5008` |
+| R1 | 5000 | `telnet localhost 5000` |
+| R2 | 5001 | `telnet localhost 5001` |
+| R3 | 5002 | `telnet localhost 5002` |
+| R4 | 5003 | `telnet localhost 5003` |
+| Switch1 | none | N/A |
+
+Nota: Los números de puerto pueden variar según la configuración de GNS3. Verifica en la consola de GNS3 el puerto específico de cada dispositivo si estos valores no corresponden.
+
+---
+
+## 10. Habilitar Telnet en Windows
+
+### 10.1 Pasos de instalación:
+
+1. Abre **Características de Windows** (Windows Features).
+   - En Windows 10/11: Presiona `Windows + R`, escribe `windows features` y presiona Enter.
+   - O accede a Panel de Control → Programas → Características de Windows.
+
+2. Busca **Telnet Client** en la lista de características.
+
+3. Marca la casilla para activar Telnet Client.
+
+4. Aplica los cambios y reinicia el sistema si es necesario.
+
+5. Abre una terminal (cmd o PowerShell) y verifica la instalación:
+   ```bash
+   telnet --version
+   ```
+
+La conexión por Telnet a equipos y puertos de GNS3 está documentada en la sección **9.3**.
+
+---
+
+## 11. Cómo conectarse por Telnet y configurar IP
+
+### Ejemplo práctico (LAN_A)
+
+1. Abre una terminal (cmd o PowerShell).
+
+2. Conéctate a LAN_A por Telnet:
+   ```bash
+   telnet localhost 5004
+   ```
+
+3. Se abrirá la consola de LAN_A. Ejecuta el comando de configuración:
+   ```bash
+   ip 192.168.XX.10/26 192.168.XX.1
+   ```
+
+4. Guarda la configuración:
+   ```bash
+   save
+   ```
+
+5. Verifica conectividad (ping al gateway):
+   ```bash
+   ping 192.168.XX.1
+   ```
+
+---
+
+## 12. Salir de Telnet
+
+### Procedimiento para desconectar:
+
+Cuando estés conectado por Telnet a un dispositivo:
+
+1. Presiona **`Ctrl + ]`** (Control y corchete derecho cerrado).
+   - Esto abre el prompt de Telnet: `telnet>`
+
+2. Escribe:
+   ```
+   quit
+   ```
+
+3. Presiona **Enter** para cerrar la conexión Telnet.
+
+La sesión Telnet se cerrará y regresarás a tu terminal (cmd/PowerShell).
+
+---
+
+## 13. Notas importantes sobre Telnet
+
+- **No está encriptado:** Telnet transmite credenciales y datos en texto plano. Usar **solo en redes internas de prueba** donde la seguridad no es crítica.
+
+- **SSH es la alternativa segura:** Para producción y acceso remoto en internet, utiliza SSH (Secure Shell) en su lugar.
+
+- **En laboratorios educativos:** Telnet es aceptable porque la red de GNS3 es local y aislada.
+
+- **Puertos por defecto:** Los puertos 5000-5007 en localhost suelen usarse en GNS3 para acceso local a equipos (sin exponer a internet).
+
+- **Troubleshooting:** Si Telnet no conecta, verifica:
+  1. GNS3 está en ejecución.
+  2. El dispositivo está encendido en la topología.
+  3. El puerto Telnet coincide con el del dispositivo.
+  4. Firewall del sistema no bloquea localhost.
