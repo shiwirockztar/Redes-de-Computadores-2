@@ -126,6 +126,280 @@ end
 wr
 ```
 
+## 4.1 Análisis de conectividad y tablas de enrutamiento (Paso b)
+
+### (b) Configuración IP de la topología, conectividad inicial y análisis de tablas
+
+Después de configurar todas las interfaces según el Paso 1, verifica la conectividad inicial dentro de cada red.
+
+#### Conectividad esperada **antes** de agregar rutas estáticas adicionales:
+
+- Ping exitoso dentro de cada red directamente conectada (PC a su gateway).
+- Entre routers, ping exitoso solo entre vecinos directos (por ejemplo R3 <-> R4 por serial).
+- Ping fallido entre LAN_A y LAN_B, LAN_A y LAN_C, LAN_B y LAN_C.
+
+#### Ejemplos de verificación:
+
+Desde LAN_A (VPCS), ping al gateway local:
+```bash
+ping 192.168.XX.1
+```
+
+Salida esperada (éxito):
+```text
+84 bytes from 192.168.XX.1 icmp_seq=1 ttl=255 time=1.2 ms
+84 bytes from 192.168.XX.1 icmp_seq=2 ttl=255 time=0.9 ms
+84 bytes from 192.168.XX.1 icmp_seq=3 ttl=255 time=1.1 ms
+84 bytes from 192.168.XX.1 icmp_seq=4 ttl=255 time=1.0 ms
+84 bytes from 192.168.XX.1 icmp_seq=5 ttl=255 time=1.1 ms
+```
+
+Desde LAN_A (VPCS), hacia LAN_B (aún sin rutas):
+```bash
+ping 192.168.XX.74
+```
+
+Salida esperada (fallo):
+```text
+Request timeout for icmp_seq 1
+Request timeout for icmp_seq 2
+Request timeout for icmp_seq 3
+Request timeout for icmp_seq 4
+Request timeout for icmp_seq 5
+```
+
+O alternativamente, rechazo explícito desde el gateway:
+```text
+*192.168.XX.1 icmp_seq=1 ttl=255 time=15.338 ms (ICMP type:3, code:1, Destination host unreachable)
+```
+
+Desde R3 (router), verificar enlace serial con vecino directo R4:
+```bash
+ping 192.168.XX.194
+```
+
+Salida esperada (éxito entre vecinos directos, serial):
+```text
+Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to 192.168.XX.194, timeout is 2 seconds:
+!!!!!
+Success rate is 100 percent (5/5)
+```
+
+#### Análisis de tablas de enrutamiento (directamente conectadas, sin rutas estáticas aún):
+
+En cualquier router, ejecuta:
+```bash
+show ip route
+```
+
+Expected output (solo rutas conectadas y locales):
+```bash
+C   192.168.XX.0/26 is directly connected, FastEthernet0/0
+L   192.168.XX.1/32 is directly connected, FastEthernet0/0
+C   192.168.XX.128/26 is directly connected, FastEthernet0/1
+L   192.168.XX.129/32 is directly connected, FastEthernet0/1
+```
+
+**Interpretación:**
+- `C` = Connected (red conectada directamente)
+- `L` = Local (IP local del router en esa red)
+- Aún no hay rutas `S` (Static) hacia redes remotas
+- Por eso, si el destino no está conectado directamente, el paquete se descarta
+
+---
+
+### Paso 4.2 Rutas estáticas entre R1 y R2 (Paso c)
+
+## (c) Rutas estáticas en R1 y R2 para alcanzar redes conectadas del otro
+
+Como R1 y R2 comparten el segmento `192.168.XX.128/26` con R3, la recomendación es configurar rutas estáticas con **siguiente salto** (next-hop) en lugar de solo interfaz de salida.
+
+#### ¿Por qué siguiente salto es mejor en redes Ethernet multiacceso?
+
+- Con solo interfaz de salida, el router intenta resolver ARP del destino final remoto en ese enlace, generando tráfico innecesario y ambigüedad.
+- Con siguiente salto, la resolución ARP es contra el vecino inmediato correcto, lo que garantiza entrega más eficiente.
+
+#### Configuración sugerida
+
+En R1:
+```bash
+conf t
+ip route 192.168.XX.64 255.255.255.192 192.168.XX.130
+end
+wr
+```
+
+En R2:
+```bash
+conf t
+ip route 192.168.XX.0 255.255.255.192 192.168.XX.129
+end
+wr
+```
+
+#### Recorrido de un paquete (ejemplo: LAN_B → LAN_A)
+
+1. Equipo en LAN_B envía paquete hacia LAN_A (ej: `192.168.XX.10`) a su gateway R2 (`192.168.XX.65`).
+2. R2 consulta su tabla de enrutamiento y encuentra la ruta estática a `192.168.XX.0/26` vía siguiente salto `192.168.XX.129` (R1).
+3. R2 reencapsula el paquete con MAC de R1 (resuelta por ARP a través de la red compartida `192.168.XX.128/26`) y lo reenvia por `Fa0/1`.
+4. R1 recibe el paquete, consulta su tabla y detecta que `192.168.XX.0/26` está conectada directamente en `Fa0/0`, así que lo entrega al host destino en LAN_A.
+
+#### Verificación después de (c)
+
+Desde LAN_A, prueba hacia LAN_B:
+```bash
+ping 192.168.XX.74
+```
+
+Salida esperada (ahora debe ser exitoso):
+```text
+84 bytes from 192.168.XX.74 icmp_seq=1 ttl=126 time=2.8 ms
+84 bytes from 192.168.XX.74 icmp_seq=2 ttl=126 time=2.6 ms
+84 bytes from 192.168.XX.74 icmp_seq=3 ttl=126 time=2.7 ms
+84 bytes from 192.168.XX.74 icmp_seq=4 ttl=126 time=2.5 ms
+84 bytes from 192.168.XX.74 icmp_seq=5 ttl=126 time=2.6 ms
+```
+
+**Nota:** Aún no hay conectividad entre LAN_A/LAN_B y LAN_C, porque faltan rutas por defecto y retorno completo por R3/R4.
+
+---
+
+### Paso 4.3 Rutas por defecto en R1 y R2, propagación en R3 y R4 (Paso d)
+
+## (d) Ruta por defecto en R1 y R2 + comandos en R3 y R4 para completar conectividad
+
+Objetivo: que R1 y R2 alcancen redes del resto de la topología (R3, R4, LAN_C) a través de R3. Simultáneamente, R3 y R4 deben tener rutas para regresar tráfico hacia LAN_A y LAN_B.
+
+#### Configuración de rutas por defecto
+
+En R1:
+```bash
+conf t
+ip route 0.0.0.0 0.0.0.0 192.168.XX.131
+end
+wr
+```
+
+En R2:
+```bash
+conf t
+ip route 0.0.0.0 0.0.0.0 192.168.XX.131
+end
+wr
+```
+
+Esta ruta por defecto `0.0.0.0/0` indica que cualquier destino no conocido debe enviarse a R3 (`192.168.XX.131`).
+
+#### Configuración de rutas de retorno en R3 y R4
+
+En R3, agregar rutas específicas para alcanzar LAN_A y LAN_B:
+```bash
+conf t
+ip route 192.168.XX.0 255.255.255.192 192.168.XX.129
+ip route 192.168.XX.64 255.255.255.192 192.168.XX.130
+end
+wr
+```
+
+En R4, agregar rutas que apunten hacia R3 para cualquier destino en redes de R1 y R2:
+```bash
+conf t
+ip route 192.168.XX.0 255.255.255.192 192.168.XX.193
+ip route 192.168.XX.64 255.255.255.192 192.168.XX.193
+end
+wr
+```
+
+#### ¿Se pueden usar rutas por defecto en R3 y R4 para llegar a redes de R1?
+
+**Respuesta técnica:** Sí, es posible, pero **no siempre es conveniente**, especialmente en escenarios de crecimiento.
+
+**¿Por qué no es óptimo a futuro?**
+
+- Si a la derecha de la topología se agregan nuevas redes, una ruta por defecto mal orientada puede generar caminos subóptimos o incluso loops de enrutamiento.
+- En escenarios donde la topología evoluciona, conviene mantener rutas específicas (o migrar a protocolos de enrutamiento dinámico como OSPF o RIPv2).
+- R3 y R4 con rutas específicas ofrecen mayor control y predictibilidad.
+
+**Mejor práctica:** Usa rutas específicas en R3 y R4 (como se muestra arriba) al menos mientras la topología sea pequeña y controlable.
+
+#### Verificación después de (d)
+
+Desde LAN_A, ping extremo a extremo hacia LAN_C:
+```bash
+ping 192.168.XX.202
+```
+
+Salida esperada (ahora debe ser exitoso):
+```text
+84 bytes from 192.168.XX.202 icmp_seq=1 ttl=124 time=8.1 ms
+84 bytes from 192.168.XX.202 icmp_seq=2 ttl=124 time=7.9 ms
+84 bytes from 192.168.XX.202 icmp_seq=3 ttl=124 time=8.0 ms
+84 bytes from 192.168.XX.202 icmp_seq=4 ttl=124 time=8.2 ms
+84 bytes from 192.168.XX.202 icmp_seq=5 ttl=124 time=7.8 ms
+```
+
+Desde LAN_A, trazar la ruta completa:
+```bash
+trace 192.168.XX.202
+```
+
+Salida esperada (muestra los saltos):
+```text
+trace to 192.168.XX.202, 8 hops max
+ 1   192.168.XX.1      (R1 local)
+ 2   192.168.XX.131    (R3)
+ 3   192.168.XX.194    (R4)
+ 4   192.168.XX.202    (host en LAN_C)
+```
+
+#### Checklist preventivo de troubleshooting para paso (d)
+
+Si el ping desde LAN_A a LAN_C falla:
+
+1. Verifica que todas las interfaces estén en estado `up/up`:
+   ```bash
+   show ip interface brief
+   ```
+
+2. En todos los routers, verifica que existan las rutas esperadas:
+   ```bash
+   show ip route static
+   ```
+
+3. En R3, verifica específicamente que tenga ruta hacia LAN_C:
+   ```bash
+   show ip route 192.168.XX.200
+   ```
+   Debe mostrar la ruta estática a través de `192.168.XX.194`.
+
+4. En R4, verifica que tenga rutas de retorno hacia R1 y R2:
+   ```bash
+   show ip route 192.168.XX.0
+   show ip route 192.168.XX.64
+   ```
+
+5. Verifica manualmente que el enlace serial R3-R4 está operativo:
+   ```bash
+   # En R3:
+   ping 192.168.XX.194
+   
+   # En R4:
+   ping 192.168.XX.193
+   ```
+
+Si la serial está `down/down`, actívala:
+```bash
+conf t
+interface s0/0
+ clock rate 64000
+ no shutdown
+end
+wr
+```
+
+---
+
 ### Paso 2. Configurar rutas estaticas internas del Lab 4
 
 R1:
