@@ -24,6 +24,58 @@ Mantiene la misma estructura del Lab 4, solo cambia el tercer octeto:
 - Enlace R3-R4: `192.168.XX.192/29`
 - LAN_C: `192.168.XX.200/29`
 
+---
+
+## 3.1 Tabla de Direccionamiento para tu Red 192.168.XX.0/24
+
+### Red base y subdivisión
+
+**Red asignada:** `192.168.XX.0/24` (256 direcciones)
+
+**Cinco redes requeridas:**
+
+| # | RED | CIDR | Rango | Hosts útiles | Dispositivos |
+| --- | --- | --- | --- | --- | --- |
+| 1 | LAN_A | /26 | 192.168.XX.0 - 192.168.XX.63 | 62 | LAN_A ↔ R1 |
+| 2 | LAN_B | /26 | 192.168.XX.64 - 192.168.XX.127 | 62 | LAN_B ↔ R2 |
+| 3 | Switch1 | /26 | 192.168.XX.128 - 192.168.XX.191 | 62 | R1, R2, R3 ↔ Switch1 |
+| 4 | R3-R4 | /29 | 192.168.XX.192 - 192.168.XX.199 | 6 | R3 ↔ R4 (Serial) |
+| 5 | LAN_C | /29 | 192.168.XX.200 - 192.168.XX.207 | 6 | R4 ↔ LAN_C |
+
+### Tabla de direcciones resumen
+
+| Dispositivo | Interfaz | Dirección IP | Máscara | Red |
+| --- | --- | --- | --- | --- |
+| R1 | Fa0/0 | 192.168.XX.1 | 255.255.255.192 | LAN_A |
+| R1 | Fa0/1 | 192.168.XX.129 | 255.255.255.192 | Switch1 |
+| R2 | Fa0/0 | 192.168.XX.65 | 255.255.255.192 | LAN_B |
+| R2 | Fa0/1 | 192.168.XX.130 | 255.255.255.192 | Switch1 |
+| R3 | Fa0/0 | 192.168.XX.131 | 255.255.255.192 | Switch1 |
+| R3 | s0/0 | 192.168.XX.193 | 255.255.255.248 | R3-R4 |
+| R4 | Fa0/0 | 192.168.XX.201 | 255.255.255.248 | LAN_C |
+| R4 | s0/0 | 192.168.XX.194 | 255.255.255.248 | R3-R4 |
+| Switch1 | VLAN 1 | 192.168.XX.132 | 255.255.255.192 | Switch1 |
+| LAN_A | Ethernet | 192.168.XX.10 | 255.255.255.192 | LAN_A |
+| LAN_B | Ethernet | 192.168.XX.74 | 255.255.255.192 | LAN_B |
+| LAN_C | Ethernet | 192.168.XX.202 | 255.255.255.248 | LAN_C |
+
+### Puertos de conexión por Telnet (GNS3)
+
+| Dispositivo | Puerto | Comando |
+| --- | --- | --- |
+| LAN_A | 5004 | `telnet localhost 5004` |
+| LAN_B | 5006 | `telnet localhost 5006` |
+| LAN_C | 5008 | `telnet localhost 5008` |
+| R1 | 5000 | `telnet localhost 5000` |
+| R2 | 5001 | `telnet localhost 5001` |
+| R3 | 5002 | `telnet localhost 5002` |
+| R4 | 5003 | `telnet localhost 5003` |
+| Switch1 | none | N/A |
+
+Nota: Los números de puerto pueden variar según la configuración de GNS3. Verifica en la consola de GNS3 el puerto específico de cada dispositivo si estos valores no corresponden.
+
+---
+
 ## 4. Procedimiento paso a paso (tu topologia local)
 
 ### Paso 1. Configurar interfaces principales (R1-R4)
@@ -891,59 +943,9 @@ Para conectar con otra red, repite exactamente el mismo procedimiento:
 
 ---
 
-## 9. Tabla de Direccionamiento para tu Red 192.168.XX.0/24
+## 9. Habilitar Telnet en Windows
 
-### 9.1 Red base y subdivisión
-
-**Red asignada:** `192.168.XX.0/24` (256 direcciones)
-
-**Cinco redes requeridas:**
-
-| # | RED | CIDR | Rango | Hosts útiles | Dispositivos |
-| --- | --- | --- | --- | --- | --- |
-| 1 | LAN_A | /26 | 192.168.XX.0 - 192.168.XX.63 | 62 | LAN_A ↔ R1 |
-| 2 | LAN_B | /26 | 192.168.XX.64 - 192.168.XX.127 | 62 | LAN_B ↔ R2 |
-| 3 | Switch1 | /26 | 192.168.XX.128 - 192.168.XX.191 | 62 | R1, R2, R3 ↔ Switch1 |
-| 4 | R3-R4 | /29 | 192.168.XX.192 - 192.168.XX.199 | 6 | R3 ↔ R4 (Serial) |
-| 5 | LAN_C | /29 | 192.168.XX.200 - 192.168.XX.207 | 6 | R4 ↔ LAN_C |
-
-### 9.2 Tabla de direcciones resumen
-
-| Dispositivo | Interfaz | Dirección IP | Máscara | Red |
-| --- | --- | --- | --- | --- |
-| R1 | Fa0/0 | 192.168.XX.1 | 255.255.255.192 | LAN_A |
-| R1 | Fa0/1 | 192.168.XX.129 | 255.255.255.192 | Switch1 |
-| R2 | Fa0/0 | 192.168.XX.65 | 255.255.255.192 | LAN_B |
-| R2 | Fa0/1 | 192.168.XX.130 | 255.255.255.192 | Switch1 |
-| R3 | Fa0/0 | 192.168.XX.131 | 255.255.255.192 | Switch1 |
-| R3 | s0/0 | 192.168.XX.193 | 255.255.255.248 | R3-R4 |
-| R4 | Fa0/0 | 192.168.XX.201 | 255.255.255.248 | LAN_C |
-| R4 | s0/0 | 192.168.XX.194 | 255.255.255.248 | R3-R4 |
-| Switch1 | VLAN 1 | 192.168.XX.132 | 255.255.255.192 | Switch1 |
-| LAN_A | Ethernet | 192.168.XX.10 | 255.255.255.192 | LAN_A |
-| LAN_B | Ethernet | 192.168.XX.74 | 255.255.255.192 | LAN_B |
-| LAN_C | Ethernet | 192.168.XX.202 | 255.255.255.248 | LAN_C |
-
-### 9.3 Puertos de conexión por Telnet (GNS3)
-
-| Dispositivo | Puerto | Comando |
-| --- | --- | --- |
-| LAN_A | 5004 | `telnet localhost 5004` |
-| LAN_B | 5006 | `telnet localhost 5006` |
-| LAN_C | 5008 | `telnet localhost 5008` |
-| R1 | 5000 | `telnet localhost 5000` |
-| R2 | 5001 | `telnet localhost 5001` |
-| R3 | 5002 | `telnet localhost 5002` |
-| R4 | 5003 | `telnet localhost 5003` |
-| Switch1 | none | N/A |
-
-Nota: Los números de puerto pueden variar según la configuración de GNS3. Verifica en la consola de GNS3 el puerto específico de cada dispositivo si estos valores no corresponden.
-
----
-
-## 10. Habilitar Telnet en Windows
-
-### 10.1 Pasos de instalación:
+### 9.1 Pasos de instalación:
 
 1. Abre **Características de Windows** (Windows Features).
    - En Windows 10/11: Presiona `Windows + R`, escribe `windows features` y presiona Enter.
@@ -960,13 +962,11 @@ Nota: Los números de puerto pueden variar según la configuración de GNS3. Ver
    telnet --version
    ```
 
-La conexión por Telnet a equipos y puertos de GNS3 está documentada en la sección **9.3**.
+La conexión por Telnet a equipos y puertos de GNS3 está documentada en la sección **3.1** (tabla de puertos).
 
----
+### 9.2 Cómo conectarse por Telnet y configurar IP
 
-## 11. Cómo conectarse por Telnet y configurar IP
-
-### Ejemplo práctico (LAN_A)
+#### Ejemplo práctico (LAN_A)
 
 1. Abre una terminal (cmd o PowerShell).
 
@@ -990,11 +990,9 @@ La conexión por Telnet a equipos y puertos de GNS3 está documentada en la secc
    ping 192.168.XX.1
    ```
 
----
+### 9.3 Salir de Telnet
 
-## 12. Salir de Telnet
-
-### Procedimiento para desconectar:
+#### Procedimiento para desconectar:
 
 Cuando estés conectado por Telnet a un dispositivo:
 
@@ -1010,9 +1008,7 @@ Cuando estés conectado por Telnet a un dispositivo:
 
 La sesión Telnet se cerrará y regresarás a tu terminal (cmd/PowerShell).
 
----
-
-## 13. Notas importantes sobre Telnet
+### 9.4 Notas importantes sobre Telnet
 
 - **No está encriptado:** Telnet transmite credenciales y datos en texto plano. Usar **solo en redes internas de prueba** donde la seguridad no es crítica.
 
