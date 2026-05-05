@@ -132,3 +132,159 @@ Si quieres, puedo:
 
 - ajustar automáticamente las rutas estáticas en los archivos de configuración de los routers del proyecto (si me indicas la ubicación),
 - o generar un script con los comandos para copiar/pegar en cada router.
+
+## 8. Scripts: Topología alternativa usando 192.168.3.0/24
+
+La topología es la misma que la documentada para `192.168.78.0/24` pero con el prefijo `192.168.3.0/24`. A continuación tienes los comandos listos para copiar/pegar en cada dispositivo (Cisco IOS para routers/switch, comandos `ip` para PCs/VPCS). Sigue el orden: configurar routers, switch, PCs y por último verificar.
+
+Nota: las subredes mantienen los mismos offsets (/26, /29) pero usando el prefijo `192.168.3.x`.
+
+- LAN_A: 192.168.3.0/26 (hosts .1 - .62)
+- LAN_B: 192.168.3.64/26
+- Switch1: 192.168.3.128/26 (mgmt .132)
+- Enlace R3-R4: 192.168.3.192/29 (hosts .193, .194)
+- LAN_C: 192.168.3.200/29 (hosts .201, .202)
+
+---
+
+R1 (Cisco IOS)
+```bash
+enable
+conf t
+int fa0/0
+ ip address 192.168.3.1 255.255.255.192
+ no shutdown
+int fa0/1
+ ip address 192.168.3.129 255.255.255.192
+ no shutdown
+end
+wr
+```
+
+R2 (Cisco IOS)
+```bash
+enable
+conf t
+int fa0/0
+ ip address 192.168.3.65 255.255.255.192
+ no shutdown
+int fa0/1
+ ip address 192.168.3.130 255.255.255.192
+ no shutdown
+end
+wr
+```
+
+R3 (Cisco IOS)
+```bash
+enable
+conf t
+int fa0/0
+ ip address 192.168.3.131 255.255.255.192
+ no shutdown
+int s0/0
+ ip address 192.168.3.193 255.255.255.248
+ no shutdown
+end
+wr
+```
+
+R4 (Cisco IOS)
+```bash
+enable
+conf t
+int fa0/0
+ ip address 192.168.3.201 255.255.255.248
+ no shutdown
+int s0/0
+ ip address 192.168.3.194 255.255.255.248
+ no shutdown
+end
+wr
+```
+
+Switch1 (gestión)
+```bash
+enable
+conf t
+int vlan 1
+ ip address 192.168.3.132 255.255.255.192
+ no shutdown
+ip default-gateway 192.168.3.129
+end
+wr
+```
+
+PCs / VPCS (ejemplos)
+
+LAN_A (PC)
+```bash
+# en VPCS: 
+ip 192.168.3.10/26 192.168.3.1
+# o en Linux:
+ip addr add 192.168.3.10/26 dev eth0
+ip route add default via 192.168.3.1
+```
+
+LAN_B (PC)
+```bash
+ip 192.168.3.74/26 192.168.3.65
+```
+
+LAN_C (PC)
+```bash
+ip 192.168.3.202/29 192.168.3.201
+```
+
+---
+
+Rutas estáticas mínimas (ejemplo)
+
+R1:
+```bash
+conf t
+ip route 192.168.3.64 255.255.255.192 192.168.3.130
+ip route 192.168.3.192 255.255.255.248 192.168.3.131
+ip route 192.168.3.200 255.255.255.248 192.168.3.131
+end
+wr
+```
+
+R2:
+```bash
+conf t
+ip route 192.168.3.0 255.255.255.192 192.168.3.129
+ip route 192.168.3.192 255.255.255.248 192.168.3.131
+ip route 192.168.3.200 255.255.255.248 192.168.3.131
+end
+wr
+```
+
+R3:
+```bash
+conf t
+ip route 192.168.3.0 255.255.255.192 192.168.3.129
+ip route 192.168.3.64 255.255.255.192 192.168.3.130
+ip route 192.168.3.200 255.255.255.248 192.168.3.194
+end
+wr
+```
+
+R4 (añadir ruta hacia la red de laboratorio alternativa si hace falta):
+```bash
+conf t
+ip route 192.168.3.0 255.255.255.192 192.168.3.193
+end
+wr
+```
+
+Verificaciones
+
+ - En cada router: `show ip interface brief` y `show ip route`.
+ - Desde PCs: `ping` al gateway y a otros hosts (por ejemplo `ping 192.168.3.1`, `ping 192.168.3.65`, `ping 192.168.3.202`).
+
+Consejos rápidos
+
+ - Copia y pega cada bloque en la consola del dispositivo correspondiente.
+ - Ajusta nombres de interfaces según tu imagen en GNS3 (`f0/0` vs `fa0/0`, `s0/0` vs `s0/1`).
+ - Si prefieres, genero archivos `.txt` separados por dispositivo para importarlos.
