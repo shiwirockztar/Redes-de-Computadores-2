@@ -4,6 +4,8 @@
 
 Configurar y utilizar Telnet para conectarse a dispositivos de red desde Windows.
 
+Además, integrar una red externa `192.168.3.0/24` (VirtualBox/host) con la topología del laboratorio `192.168.78.0/24` usando Cloud de GNS3 y el router R4.
+
 ## 2. Plan de Direccionamiento
 
 ### 2.1 Red base y subdivisión
@@ -459,6 +461,109 @@ ping 192.168.78.202
 4. Configura las PCs con `ip dirección/máscara gateway`.
 5. Agrega las rutas estáticas.
 6. Verifica con `show ip interface brief`, `show ip route` y `ping`.
+
+### 4.14 Integración con red externa por Cloud (192.168.3.0/24 <-> 192.168.78.0/24)
+
+Esta sección describe como enlazar la topología del laboratorio (`192.168.78.0/24`) con una red externa de VirtualBox (`192.168.3.0/24`).
+
+#### Paso 1. Conectar Cloud a R4
+
+1. En GNS3, arrastra un nodo Cloud.
+2. En la configuración del Cloud, selecciona la interfaz del host/VM que pertenece a la red `192.168.3.0/24`.
+3. Conecta el Cloud a una interfaz libre de R4 (ejemplo: `Fa0/1`).
+
+#### Paso 2. Configurar interfaz externa en R4
+
+```bash
+enable
+conf t
+int fa0/1
+ ip address 192.168.3.1 255.255.255.0
+ no shut
+end
+wr
+```
+
+#### Paso 3. Configurar VM externa (VirtualBox)
+
+1. Adaptador en modo puente (Bridge).
+2. IP de ejemplo en la VM: `192.168.3.10/24`.
+3. Gateway de la VM: `192.168.3.1`.
+
+Ejemplo Linux:
+
+```bash
+ip addr add 192.168.3.10/24 dev eth0
+ip route add default via 192.168.3.1
+```
+
+#### Paso 4. Añadir rutas para cruce entre topologías
+
+En R3 (hacia red externa por R4):
+
+```bash
+conf t
+ip route 192.168.3.0 255.255.255.0 192.168.78.194
+end
+wr
+```
+
+En R1 y R2 (hacia R3):
+
+```bash
+conf t
+ip route 192.168.3.0 255.255.255.0 192.168.78.131
+end
+wr
+```
+
+En R4 (ruta de retorno a red interna del laboratorio):
+
+```bash
+conf t
+ip route 192.168.78.0 255.255.255.0 192.168.78.193
+end
+wr
+```
+
+#### Paso 5. Entender el flujo entre topologías
+
+Tráfico de ida:
+
+`VM 192.168.3.10 -> R4 (192.168.3.1) -> R3 (192.168.78.193/194) -> subred destino en 192.168.78.0/24`
+
+Tráfico de vuelta:
+
+`host 192.168.78.x -> R3 -> R4 -> VM 192.168.3.10`
+
+#### Paso 6. Pruebas para confirmar conexión entre topologías
+
+Desde la VM externa:
+
+```bash
+ping 192.168.3.1
+ping 192.168.78.201
+traceroute 192.168.78.201
+```
+
+Desde routers del laboratorio (R1 o R3):
+
+```bash
+ping 192.168.3.10
+```
+
+En todos los routers:
+
+```bash
+show ip interface brief
+show ip route
+```
+
+Criterio de exito:
+
+- Ping exitoso de `192.168.3.10` hacia al menos un host/router de `192.168.78.0/24`.
+- Ping exitoso desde la topología del laboratorio hacia `192.168.3.10`.
+- `traceroute` mostrando paso por R4 y luego por la red interna.
 
 ## 5. Habilitar Telnet en Windows
 
