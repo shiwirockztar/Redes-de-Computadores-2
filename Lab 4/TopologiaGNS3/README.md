@@ -1,5 +1,9 @@
 # README General - Lab 4 con red variable 192.168.XX.0/24
 
+## Previsualizacion de la topologia
+
+![Topologia de red](../topologia.png)
+
 ## 1. Objetivo
 
 Este documento sirve como plantilla para cualquier usuario que elija su propia red base:
