@@ -400,6 +400,301 @@ wr
 
 ---
 
+## (e) Conectividad con topologías de compañeros usando una ruta estática por vecino
+
+Objetivo: conectar tu topología (`192.168.XX.0/24`) con las de tus compañeros (`192.168.YY.0/24`, `192.168.ZZ.0/24`, etc.) usando el Cloud como segmento de tránsito y una sola ruta estática por R4 hacia cada compañero.
+
+### Prerequisito: Cloud conectado a R4
+
+1. Arrastra un nodo Cloud en GNS3.
+2. Conecta Cloud a la interfaz `Fa0/1` de tu R4.
+3. Asocia el Cloud a una interfaz real/virtual de tu host.
+
+### Configuración de R4 (lado Cloud)
+
+R4:
+```bash
+conf t
+interface fa0/1
+ ip address dhcp
+ no shutdown
+exit
+end
+wr
+```
+
+Verifica que obtuvo IP por DHCP (ejemplo: `192.168.0.106`):
+```bash
+show ip interface brief
+```
+
+Salida esperada:
+```
+FastEthernet0/1            192.168.0.106   YES DHCP   up                    up
+```
+
+### Agregar una ruta por cada compañero
+
+En tu R4, agrega una ruta estática hacia cada red de compañero usando su IP Cloud como next-hop. Si son 7 estudiantes, agregarás 6 rutas (una por cada compañero):
+
+```bash
+conf t
+ip route 192.168.YY.0 255.255.255.0 <IP_CLOUD_COMPANERO_1>
+ip route 192.168.ZZ.0 255.255.255.0 <IP_CLOUD_COMPANERO_2>
+! Continuar una ruta por cada compañero adicional...
+end
+wr
+```
+
+Ejemplo concreto (si tienes 3 compañeros):
+```bash
+conf t
+ip route 192.168.45.0 255.255.255.0 192.168.0.120
+ip route 192.168.12.0 255.255.255.0 192.168.0.135
+ip route 192.168.89.0 255.255.255.0 192.168.0.150
+end
+wr
+```
+
+### Propagación en routers internos (R3, R1, R2)
+
+Cada router interno debe poder llegar a las redes de compañeros. Las rutas deben apuntar hacia R4 como next-hop:
+
+En R3:
+```bash
+conf t
+ip route 192.168.YY.0 255.255.255.0 192.168.XX.194
+ip route 192.168.ZZ.0 255.255.255.0 192.168.XX.194
+! Una ruta por cada red de compañero...
+end
+wr
+```
+
+En R1 (ruta por defecto existe desde paso d, o agregar específicas):
+```bash
+conf t
+ip route 192.168.YY.0 255.255.255.0 192.168.XX.131
+ip route 192.168.ZZ.0 255.255.255.0 192.168.XX.131
+end
+wr
+```
+
+En R2 (idem):
+```bash
+conf t
+ip route 192.168.YY.0 255.255.255.0 192.168.XX.131
+ip route 192.168.ZZ.0 255.255.255.0 192.168.XX.131
+end
+wr
+```
+
+### Coordinación con compañeros
+
+Cada compañero debe:
+
+1. Obtener tu IP Cloud en su interfaz `Fa0/1` ejecutando `show ip interface brief`.
+2. Crear ruta de retorno hacia tu red (`192.168.XX.0/24`) usando tu IP Cloud:
+   ```bash
+   conf t
+   ip route 192.168.XX.0 255.255.255.0 <TU_IP_CLOUD>
+   end
+   wr
+   ```
+
+### Verificación
+
+En R4, verifica conexión al Cloud:
+```bash
+show ip interface brief
+show ip route static
+ping <IP_CLOUD_COMPANERO_1>
+ping <IP_CLOUD_COMPANERO_2>
+```
+
+Desde tu LAN_A, prueba alcanzar un host en LAN de compañero:
+```bash
+ping 192.168.YY.10
+trace 192.168.YY.10
+```
+
+Salida esperada del `trace`:
+```
+trace to 192.168.YY.10, 8 hops max
+ 1   192.168.XX.1      (R1)
+ 2   192.168.XX.131    (R3)
+ 3   192.168.XX.194    (R4)
+ 4   <IP_CLOUD_R4_COMPANERO> (R4 compañero al otro lado del Cloud)
+ 5   <IP_Interna_Compañero> (compañero R3 o similar)
+ ... (saltos internos del compañero hasta host destino)
+```
+
+---
+
+## (f) ¿Qué pasaría si todos los estudiantes usaran solo rutas por defecto?
+
+### Análisis
+
+Si todos los routers en el laboratorio configuraran **únicamente rutas por defecto** (`0.0.0.0/0`):
+
+**Problemas esperados:**
+
+1. **Loops de enrutamiento:** Si R4 tiene default apuntando hacia el Cloud y el Cloud reenvía el tráfico de forma indeterminada, pueden crearse ciclos.
+2. **Black holes:** Tráfico destinado a redes internas que debería rechazarse en lugar de ser reenviado indefinidamente.
+3. **Falta de control:** No hay camino único garantizado; el destino del tráfico depende de cómo esté configurado cada enlace.
+4. **Difícil depuración:** Sin rutas específicas, los comandos como `show ip route <destino>` no indicarán claramente hacia dónde irá un paquete.
+
+### ¿Sería posible conseguir conectividad completa con solo defaults?
+
+**Respuesta corta:** No de manera robusta y predecible.
+
+**Explicación:**
+
+- En redes jerárquicas estrictas y pequeñas, podrías obtener conectividad **por casualidad**, pero no es garantizado.
+- Cada router necesitaría que su default esté apuntando al "siguiente nivel" correcto, lo cual requiere acuerdo global.
+- Si dos estudiantes apuntan sus defaults al mismo sitio, el otro lado no sabría devolver tráfico.
+- No hay mecanismo de "convergencia" como en protocolos dinámicos (OSPF, RIP).
+
+**Conclusión:** Rutas específicas (o enrutamiento dinámico) son necesarias para conectividad completa, confiable y escalable.
+
+---
+
+## (g) Proceso del router con ruta estática configurada por **interfaz de salida**
+
+Cuando un router recibe un paquete y encuentra coincidencia con una ruta estática del tipo `ip route <red> <mascara> <interfaz>`:
+
+### Secuencia de pasos
+
+1. **Recepción y validación:** Router recibe trama, valida FCS y extrae el paquete IP.
+
+2. **Decremento de TTL:** Decrementa el campo TTL del paquete IP en 1.
+
+3. **Búsqueda en tabla:** Aplica búsqueda por prefijo más largo (Longest Prefix Match) contra la tabla de enrutamiento.
+
+4. **Coincidencia encontrada:** Localiza ruta estática `S` especificando solo interfaz de salida:
+   ```
+   S   192.168.XX.64/26 [1/0] via <interfaz_salida>
+   ```
+
+5. **Determinación de interfaz:** Identifica interfaz de salida (ejemplo: `Fa0/0`).
+
+6. **Resolución ARP (problema potencial):** En redes Ethernet multiacceso, necesita resolver **MAC destino**:
+   - El router intenta resolver ARP del **destino final remoto**.
+   - Ejemplo: si el destino es `192.168.XX.74` y la interfaz es Ethernet compartida, envía ARP request para `192.168.XX.74`.
+   - Esto genera tráfico ARP innecesario y puede fallar si el destino no está directamente conectado.
+
+7. **Reencapsulación:** Reencapsula el paquete en nueva trama L2 con:
+   - MAC origen: dirección MAC de la interfaz de salida.
+   - MAC destino: MAC resuelta por ARP (o fallida).
+
+8. **Reenvío:** Envía la trama por la interfaz de salida.
+
+### Riesgos en intancias Ethernet monoaccesu
+
+- **Generación de ARP broadcast innecesarios** hacia destinos finales remotos.
+- **Falta de claridad** sobre el siguiente vecino inmediato.
+- **Potencial fallo** si el destino final no responde ARP en el mismo segmento L2.
+
+---
+
+## (h) Proceso del router con ruta estática configurada por **siguiente salto** (next-hop)
+
+Cuando un router recibe un paquete y encuentra coincidencia con una ruta estática del tipo `ip route <red> <mascara> <next_hop>`:
+
+### Secuencia de pasos
+
+1. **Recepción y validación:** Router recibe trama, valida FCS y extrae el paquete IP.
+
+2. **Decremento de TTL:** Decrementa TTL en 1.
+
+3. **Búsqueda en tabla:** Aplica prefijo más largo en tabla de enrutamiento.
+
+4. **Coincidencia encontrada:** Localiza ruta estática `S` especificando siguiente salto:
+   ```
+   S   192.168.XX.0/26 [1/0] via 192.168.XX.129 (next-hop)
+   ```
+
+5. **Búsqueda recursiva del next-hop:** Realiza nueva búsqueda recursiva para determinar **cómo alcanzar el next-hop**:
+   - Si next-hop está directamente conectado (en una red propia del router), identifica la interfaz.
+   - Si no, busca otra ruta hacia el next-hop.
+
+6. **Determinación de interfaz e interfaz de salida:**
+   - Una vez resuelta la interfaz para alcanzar el next-hop, la usa como interfaz de salida real.
+   - Ejemplo: Para alcanzar next-hop `192.168.XX.129` (R1), es directamente conectado en `Fa0/1`.
+
+7. **Resolución ARP:** En Ethernet, resuelve ARP del **vecino next-hop** (no del destino final):
+   - Envía ARP request para dirección MAC de `192.168.XX.129` (R1).
+   - Recibe respuesta con MAC de R1.
+   - Esto es más eficiente y determinístico.
+
+8. **Reencapsulación:** Reencapsula paquete en nueva trama L2 con:
+   - MAC origen: dirección MAC de interfaz de salida.
+   - MAC destino: MAC del next-hop.
+
+9. **Reenvío:** Envía trama hacia el siguiente router (next-hop), quien procesa y repite el ciclo.
+
+### Ventajas sobre interfaz de salida
+
+- **ARP targeting correcto:** Resuelve MAC solo del vecino inmediato.
+- **Menor ambigüedad:** Ruta explícitamente "saltada" a un dispositivo conocido.
+- **Mejor en multiacceso:** En enlaces compartidos, garantiza entrega al vecino correcto.
+- **Mejor práctica:** Recomendado en productions networks.
+
+---
+
+## (i) Proceso cuando hay múltiples coincidencias en la tabla (Longest Prefix Match)
+
+Cuando un router recibe un paquete cuya dirección destino coincide con **más de una ruta**:
+
+### Algoritmo de selección
+
+1. **Recolección de coincidencias:** Identifica todas las rutas cuyo prefijo es compatible con el destino.
+
+   Ejemplo (destino `192.168.XX.70`):
+   - Ruta 1: `192.168.XX.0/26` ✓ (coincide)
+   - Ruta 2: `192.168.0.0/8` ✓ (coincide)
+   - Ruta 3: `0.0.0.0/0` (default) ✓ (coincide)
+
+2. **Aplicación de Longest Prefix Match (LPM):** Elige la ruta con **máscara más específica** (prefijo más largo = más bits de coincidencia).
+
+   Orden de precedencia:
+   - `/26` (26 bits específicos) → ganador
+   - `/8` (8 bits específicos)
+   - `/0` (default, 0 bits específicos)
+
+   **Resultado:** Se elige `192.168.XX.0/26`.
+
+3. **Empate de prefijo (desempate):** Si dos rutas tienen el mismo prefijo/máscara:
+   - Compara **distancia administrativa** (AD):
+     - Connected: AD=0
+     - Static: AD=1
+     - RIP: AD=120
+   - Gana la con menor AD.
+   - Si mismo AD, compara **métrica de costo**.
+
+4. **Falta total de coincidencia:** Si no hay ninguna ruta que coincida:
+   - Genera **ICMP Destination Unreachable** (tipo 3, código 1).
+   - Devuelve mensaje al origen informando destino inalcanzable.
+
+### Ejemplo completo
+
+Destino: `192.168.XX.70`
+
+Tabla de enrutamiento:
+```
+C   192.168.XX.0/26 [0/0] via 192.168.XX.1, Fa0/0
+S   192.168.XX.64/26 [1/0] via 192.168.XX.130
+S   0.0.0.0/0 [1/0] via 192.168.XX.131
+```
+
+Proceso:
+1. `192.168.XX.70` AND `/26` → `192.168.XX.64` (no coincide con `/26` de Connected).
+2. `192.168.XX.70` AND `/26` → `192.168.XX.64` (coincide con Static `/26`).
+3. `192.168.XX.70` AND `/0` → cualquier IP (coincide con default).
+4. **Longest Prefix Match:** `/26` es más específica que `/0`.
+5. **Resultado:** Se usa ruta Static `192.168.XX.64/26` vía `192.168.XX.130`.
+
+---
+
 ### Paso 2. Configurar rutas estaticas internas del Lab 4
 
 R1:
