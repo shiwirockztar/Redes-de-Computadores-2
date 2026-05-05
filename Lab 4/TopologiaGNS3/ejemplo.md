@@ -99,3 +99,109 @@ traceroute 192.168.99.10
 
 ---
 Archivo creado: ejemplo.md
+
+## Cumplimiento del numeral (e)
+
+Objetivo: cada topología debe poder alcanzar las topologías de los compañeros desde cualquier punto de su red, usando una sola ruta estática por *topología vecina* en el router que hace de salida (R4).
+
+- En `R4` (por cada compañero) **agrega una ruta estática** hacia la red del compañero usando la IP del Cloud/peer como next-hop. Si hay 7 estudiantes, en tu `R4` tendrás 6 rutas (una por cada compañero). Ejemplo:
+
+```
+conf t
+ip route 192.168.YY1.0 255.255.255.0 <IP_CLOUD_COMPANERO_1>
+ip route 192.168.YY2.0 255.255.255.0 <IP_CLOUD_COMPANERO_2>
+ip route 192.168.YY3.0 255.255.255.0 <IP_CLOUD_COMPANERO_3>
+ip route 192.168.YY4.0 255.255.255.0 <IP_CLOUD_COMPANERO_4>
+ip route 192.168.YY5.0 255.255.255.0 <IP_CLOUD_COMPANERO_5>
+ip route 192.168.YY6.0 255.255.255.0 <IP_CLOUD_COMPANERO_6>
+end
+wr
+```
+
+- En los routers internos de tu topología (`R1`, `R2`) **usa una sola ruta por defecto** hacia `R3` para que todo el tráfico hacia redes externas se encamine por `R3` (no hace falta una ruta por cada compañero en R1/R2):
+
+```
+conf t
+ip route 0.0.0.0 0.0.0.0 192.168.78.131
+end
+wr
+```
+
+- En `R3` añade **una ruta estática por cada topología vecina** que tu R4 conoce, apuntando al `siguiente salto` R4 (esto cumple "una ruta estática por router para conectarse con una topología vecina"). Ejemplo:
+
+```
+conf t
+ip route 192.168.YY1.0 255.255.255.0 192.168.78.194
+ip route 192.168.YY2.0 255.255.255.0 192.168.78.194
+! repetir una línea por cada topología vecina
+end
+wr
+```
+
+Notas clave:
+- Sólo `R4` necesita conocer las rutas hacia las redes remotas (una por cada red vecina). Internamente, `R3` puede tener una ruta por cada vecina o reenviarlas hacia `R4` según diseño.
+- `R1` y `R2` evitan tener N rutas estáticas si usan la `default` hacia `R3`.
+- Sustituye `192.168.YYx.0` y `<IP_CLOUD_COMPANERO_x>` por las redes e IPs reales de tus compañeros.
+
+Con esto cumples el numeral (e): cada topología se conecta con las demás usando únicamente una ruta estática por topología vecina en los routers de salida (`R4`) y mantienes configuraciones simples en los routers internos.
+
+## Caso real aplicado: 78 (física) <-> 99 (VirtualBox)
+
+Sí, el escenario que hiciste (tu red `192.168.78.0/24` con la de tu compañero `192.168.99.0/24`) **sí cumple** el numeral (e) para el caso de 1 vecino.
+
+Interpretación correcta del requisito en tu caso:
+- Tienes 1 topología vecina (la 99).
+- Entonces en tu `R4` necesitas 1 ruta estática hacia `192.168.99.0/24`.
+- En el `R4` de tu compañero, 1 ruta estática hacia `192.168.78.0/24`.
+
+Configuración mínima exacta para ese caso:
+
+En R4 de la topología 78:
+```
+conf t
+interface FastEthernet0/1
+ ip address 10.10.10.1 255.255.255.252
+ no shutdown
+ip route 192.168.99.0 255.255.255.0 10.10.10.2
+end
+wr
+```
+
+En R4 de la topología 99 (VirtualBox):
+```
+conf t
+interface FastEthernet0/1
+ ip address 10.10.10.2 255.255.255.252
+ no shutdown
+ip route 192.168.78.0 255.255.255.0 10.10.10.1
+end
+wr
+```
+
+Rutas internas para alcanzar "desde cualquier punto" de la red:
+
+En R3 de la topología 78:
+```
+conf t
+ip route 192.168.99.0 255.255.255.0 192.168.78.194
+end
+wr
+```
+
+En R3 de la topología 99:
+```
+conf t
+ip route 192.168.78.0 255.255.255.0 192.168.99.194
+end
+wr
+```
+
+En R1 y R2 (de cada topología), si no tienen default, agrega:
+```
+conf t
+ip route 0.0.0.0 0.0.0.0 <IP_DE_R3_EN_SWITCH1>
+end
+wr
+```
+
+Con eso, tu ejemplo 78 <-> 99 queda alineado con el numeral (e). Si luego agregas más compañeros, sólo agregas una ruta más por cada nueva topología vecina en `R4` (y su respectiva propagación interna).
