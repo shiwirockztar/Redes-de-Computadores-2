@@ -511,10 +511,12 @@ end
 wr
 ```
 
-Ejemplo concreto (tu red es `192.168.78.0/24` y la del compañero es `192.168.99.0/24`):
+Ejemplo concreto (si tienes 3 compañeros):
 ```bash
 conf t
-ip route 192.168.99.0 255.255.255.0 192.168.1.56
+ip route 192.168.45.0 255.255.255.0 192.168.0.120
+ip route 192.168.12.0 255.255.255.0 192.168.0.135
+ip route 192.168.89.0 255.255.255.0 192.168.0.150
 end
 wr
 ```
@@ -556,13 +558,33 @@ wr
 Cada compañero debe:
 
 1. Obtener tu IP Cloud en su interfaz `Fa0/1` ejecutando `show ip interface brief`.
-2. Crear ruta de retorno hacia tu red (`192.168.78.0/24` en este ejemplo) usando tu IP Cloud:
+2. Crear ruta de retorno hacia tu red (`192.168.XX.0/24`) usando tu IP Cloud:
    ```bash
    conf t
-   ip route 192.168.78.0 255.255.255.0 192.168.1.56
+   ip route 192.168.XX.0 255.255.255.0 <TU_IP_CLOUD>
    end
    wr
    ```
+
+#### Ejemplo concreto
+
+Si tu red es `192.168.78.0/24` y tu IP Cloud actual es `192.168.1.56`, y la red de tu compañero es `192.168.99.0/24` con IP Cloud `192.168.1.77`, entonces las rutas quedan así:
+
+En tu R4 (78), hacia el compañero 99:
+```bash
+conf t
+ip route 192.168.99.0 255.255.255.0 192.168.1.77
+end
+wr
+```
+
+En el R4 del compañero (99), hacia tu red 78:
+```bash
+conf t
+ip route 192.168.78.0 255.255.255.0 192.168.1.56
+end
+wr
+```
 
 ### Verificación
 
@@ -586,8 +608,8 @@ trace to 192.168.99.10, 8 hops max
  1   192.168.XX.1      (R1)
  2   192.168.XX.131    (R3)
  3   192.168.XX.194    (R4)
- 4   <IP_CLOUD_R4_COMPANERO> (R4 compañero al otro lado del Cloud)
- 5   <IP_Interna_Compañero> (compañero R3 o similar)
+   4   192.168.1.77      (R4 del compañero por el Cloud)
+   5   192.168.99.1      (router interno del compañero)
  ... (saltos internos del compañero hasta host destino)
 ```
 
