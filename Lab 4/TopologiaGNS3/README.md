@@ -511,12 +511,10 @@ end
 wr
 ```
 
-Ejemplo concreto (si tienes 3 compañeros):
+Ejemplo concreto (tu red es `192.168.78.0/24` y la del compañero es `192.168.99.0/24`):
 ```bash
 conf t
-ip route 192.168.45.0 255.255.255.0 192.168.0.120
-ip route 192.168.12.0 255.255.255.0 192.168.0.135
-ip route 192.168.89.0 255.255.255.0 192.168.0.150
+ip route 192.168.99.0 255.255.255.0 192.168.1.56
 end
 wr
 ```
@@ -558,10 +556,10 @@ wr
 Cada compañero debe:
 
 1. Obtener tu IP Cloud en su interfaz `Fa0/1` ejecutando `show ip interface brief`.
-2. Crear ruta de retorno hacia tu red (`192.168.XX.0/24`) usando tu IP Cloud:
+2. Crear ruta de retorno hacia tu red (`192.168.78.0/24` en este ejemplo) usando tu IP Cloud:
    ```bash
    conf t
-   ip route 192.168.XX.0 255.255.255.0 <TU_IP_CLOUD>
+   ip route 192.168.78.0 255.255.255.0 192.168.1.56
    end
    wr
    ```
@@ -578,13 +576,13 @@ ping <IP_CLOUD_COMPANERO_2>
 
 Desde tu LAN_A, prueba alcanzar un host en LAN de compañero:
 ```bash
-ping 192.168.YY.10
-trace 192.168.YY.10
+ping 192.168.99.10
+trace 192.168.99.10
 ```
 
 Salida esperada del `trace`:
 ```
-trace to 192.168.YY.10, 8 hops max
+trace to 192.168.99.10, 8 hops max
  1   192.168.XX.1      (R1)
  2   192.168.XX.131    (R3)
  3   192.168.XX.194    (R4)
