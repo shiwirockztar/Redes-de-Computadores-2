@@ -12,11 +12,28 @@ La idea no es reproducir WTFast de forma literal, sino simular el principio tecn
 
 ## 2. Alcance y herramientas
 
-- GNS3: recomendado para pruebas reales con iperf3, Ubuntu o containers.
-- Cisco Packet Tracer: util para la maqueta logica y validacion basica de routing y conectividad.
-- IOS en routers Cisco: para EIGRP, QoS, LLQ, CBWFQ, shaping y policing.
+**Herramienta principal: GNS3** con máquinas virtuales reales para simulación de tráfico.
 
-Nota practica: Packet Tracer tiene limitaciones con algunas funciones avanzadas de QoS. Si una politica no se comporta como en IOS real, valida la parte de QoS en GNS3 con IOSv, IOU o routers reales.
+### Componentes necesarios
+
+- **GNS3**: emulador de red para simular topología con routers Cisco
+- **IOSv o IOU**: imágenes Cisco IOS virtualizadas en GNS3
+- **Ubuntu/Debian containers o VMs**: para generar tráfico real con iperf3
+- **IOS en routers Cisco**: para OSPF, QoS, LLQ, CBWFQ, shaping y policing
+
+### ¿Por qué GNS3 y no Packet Tracer?
+
+- Packet Tracer tiene limitaciones severas con QoS avanzado y simulación de tráfico real
+- GNS3 permite usar iperf3 en máquinas virtuales Linux para pruebas realistas
+- Los resultados de QoS en GNS3 son reproducibles en equipos Cisco reales
+- Mejor simulación de latencia, jitter y congestión
+
+### ¿Por qué OSPF y no EIGRP?
+
+- OSPF es estándar abierto (RFC 2328) vs EIGRP propietario de Cisco
+- Facilita interoperabilidad en redes reales
+- El objetivo del proyecto es optimización con QoS, no maximizar eficiencia de routing
+- OSPF permite control fino de métricas mediante `cost` manual en interfaces
 
 ## 3. Topologia propuesta
 
@@ -83,66 +100,103 @@ PC Gamer --- SW1 --- R1 ---- R3 ---- R4 --- SW2 --- Servidor
 
 ## 5. Diseno de latencia y ancho de banda
 
-La latencia no solo depende de la distancia. En este laboratorio se simula tambien el efecto del colapso de colas y la congestion del enlace.
+La latencia no solo depende de la distancia. En este laboratorio se simula mediante:
+- Delay configurado en interfaces
+- Congestión real de tráfico desde máquinas virtuales Linux
+- Colas de tráfico con y sin QoS
 
-### Ruta A: preferida por metricas
+### Ruta A: preferida (menor costo OSPF)
 
-- Enlace R1-R2: bandwidth 10000 kbps, delay 5000 us
-- Enlace R2-R4: bandwidth 10000 kbps, delay 5000 us
+- Enlace R1-R2: delay 5000 us → cost OSPF: 50
+- Enlace R2-R4: delay 5000 us → cost OSPF: 50
+- **Costo total: 100**
 
-### Ruta B: alternativa menos atractiva
+### Ruta B: alternativa (mayor costo OSPF)
 
-- Enlace R1-R3: bandwidth 5000 kbps, delay 20000 us
-- Enlace R3-R4: bandwidth 5000 kbps, delay 15000 us
+- Enlace R1-R3: delay 20000 us → cost OSPF: 200
+- Enlace R3-R4: delay 15000 us → cost OSPF: 150
+- **Costo total: 350**
 
-Con EIGRP, la ruta A debe ganar por tener menor delay y mayor bandwidth. Si luego se congestiona, QoS ayudara a que el trafico de gaming no quede atrapado en cola.
+**Selección de ruta con OSPF**: El router elegirá automáticamente la ruta A (costo 100) sobre la ruta B (costo 350). El `cost` se configura manualmente en cada interfaz serial usando:
+
+```ios
+interface Serial0/0/0
+ ip ospf cost 50
+```
+
+Esto simula que la ruta A tiene mejor calidad (menor latencia, mayor ancho de banda).
+
+**Generación de congestión real**: Cuando se ejecute iperf3 desde las VMs Linux con múltiples flujos, la red se congestionará de verdad, no será simulación. Sin QoS, el tráfico de gaming sufrirá degradación. Con QoS, será protegido por colas prioritarias.
 
 ## 6. Escenario de trafico a simular
 
-### Trafico 1: gaming UDP
+En GNS3, usarás VMs Ubuntu/Debian con iperf3 para generar tráfico real. Esto es mucho más realista que Packet Tracer.
 
-- Flujo pequeno, constante y sensible a jitter.
-- Puerto sugerido: UDP 5001.
-- Objetivo: simular paquetes cortos, frecuentes y criticos.
+### Tipos de tráfico
 
-### Trafico 2: streaming
+**Trafico 1: gaming UDP**
+- Flujo pequeño, constante y sensible a jitter
+- Puerto: UDP 5001
+- Simula: paquetes cortos, frecuentes y críticos (League of Legends, CS:GO, etc.)
 
-- Flujo sostenido, tolera algo mas de retardo que el juego.
-- Puerto sugerido: TCP 5002 o UDP 5002.
+**Trafico 2: streaming**
+- Flujo sostenido, tolera más retardo que el juego
+- Puerto: UDP/TCP 5002
+- Simula: YouTube, Twitch, Netflix en la red
 
-### Trafico 3: descargas
+**Trafico 3: descargas pesadas**
+- Tráfico TCP masivo
+- Puerto: TCP 5003
+- Simula: descargas de Steam, torrents, backups
 
-- Trafico TCP pesado.
-- Puerto sugerido: TCP 5003.
+### Cómo generar tráfico en GNS3
 
-### Como generar trafico
-
-- En GNS3 usa una VM Ubuntu o un container con iperf3.
-- En Packet Tracer usa ping, traceroute y pruebas basicas de conectividad; para iperf3 hace falta un host real o virtual con Linux.
-
-Ejemplo en el servidor:
+En la VM servidor (en la LAN 192.168.40.0/24):
 
 ```bash
+# Terminal 1: iniciar servidor iperf3
 iperf3 -s
+
+# O en modo daemon
+iperf3 -s -D
 ```
 
-Ejemplo de trafico gaming desde el cliente:
+En las VMs clientes (en la LAN 192.168.10.0/24):
 
+**Tráfico de gaming (UDP, sensible a latencia):**
 ```bash
 iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
 ```
 
-Ejemplo de streaming:
-
+**Tráfico de streaming (UDP o TCP, mayor volumen):**
 ```bash
 iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 120 -t 60
 ```
 
-Ejemplo de descarga pesada:
-
+**Tráfico de descarga (TCP, múltiples conexiones):**
 ```bash
 iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 60
 ```
+
+### Ejecutar pruebas en paralelo
+
+En GNS3, puedes usar múltiples terminales de Linux para ejecutar los tres tipos de tráfico simultáneamente, simulando una red real congestionada:
+
+```bash
+# En cliente1: gaming
+iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 60 &
+
+# En cliente2: streaming  
+iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 1400 -t 60 &
+
+# En cliente3: descargas
+iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 60 &
+
+# Esperar a que terminen
+wait
+```
+
+Esto genera congestión real en los enlaces, permitiendo medir el impacto de QoS.
 
 ## 7. Escenario comparativo
 
@@ -159,9 +213,16 @@ iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 60
 3. Descargas quedan como trafico best effort o con policer.
 4. La cola de baja latencia protege al trafico sensible.
 
-## 8. Configuracion base de routing con EIGRP
+## 8. Configuracion base de routing con OSPF
 
-Se usa EIGRP porque su metrica considera bandwidth y delay, lo cual encaja bien con el objetivo del proyecto.
+Se usa OSPF (protocolo estándar abierto) con configuración manual de `cost` en interfaces para simular que la ruta A tiene mejor calidad que la ruta B.
+
+### Conceptos clave de OSPF para este proyecto
+
+- **Cost (métrica)**: se calcula como 100000 / bandwidth por defecto
+- **Interface cost**: se puede configurar manualmente con `ip ospf cost <valor>`
+- **Área OSPF**: usaremos área 0 (backbone) para simplificar
+- **Passive interface**: interfaces que no forman adyacencias OSPF (hacia clientes/servidores)
 
 ### R1
 
@@ -175,23 +236,22 @@ interface g0/0
 
 interface s0/0/0
  ip address 10.0.12.1 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  clock rate 64000
  no shutdown
 
 interface s0/0/1
  ip address 10.0.13.1 255.255.255.252
- bandwidth 5000
+ ip ospf cost 200
  delay 20000
  clock rate 64000
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 192.168.10.0 0.0.0.255
- network 10.0.12.0 0.0.0.3
- network 10.0.13.0 0.0.0.3
+router ospf 1
+ network 192.168.10.0 0.0.0.255 area 0
+ network 10.0.12.0 0.0.0.3 area 0
+ network 10.0.13.0 0.0.0.3 area 0
  passive-interface g0/0
 ```
 
@@ -203,21 +263,20 @@ no ip domain-lookup
 
 interface s0/0/0
  ip address 10.0.12.2 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  no shutdown
 
 interface s0/0/1
  ip address 10.0.24.1 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  clock rate 64000
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 10.0.12.0 0.0.0.3
- network 10.0.24.0 0.0.0.3
+router ospf 1
+ network 10.0.12.0 0.0.0.3 area 0
+ network 10.0.24.0 0.0.0.3 area 0
 ```
 
 ### R3
@@ -228,21 +287,20 @@ no ip domain-lookup
 
 interface s0/0/0
  ip address 10.0.13.2 255.255.255.252
- bandwidth 5000
+ ip ospf cost 200
  delay 20000
  no shutdown
 
 interface s0/0/1
  ip address 10.0.34.1 255.255.255.252
- bandwidth 5000
+ ip ospf cost 150
  delay 15000
  clock rate 64000
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 10.0.13.0 0.0.0.3
- network 10.0.34.0 0.0.0.3
+router ospf 1
+ network 10.0.13.0 0.0.0.3 area 0
+ network 10.0.34.0 0.0.0.3 area 0
 ```
 
 ### R4
@@ -253,13 +311,13 @@ no ip domain-lookup
 
 interface s0/0/0
  ip address 10.0.24.2 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  no shutdown
 
 interface s0/0/1
  ip address 10.0.34.2 255.255.255.252
- bandwidth 5000
+ ip ospf cost 150
  delay 15000
  no shutdown
 
@@ -267,13 +325,26 @@ interface g0/0
  ip address 192.168.40.1 255.255.255.0
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 10.0.24.0 0.0.0.3
- network 10.0.34.0 0.0.0.3
- network 192.168.40.0 0.0.0.255
+router ospf 1
+ network 10.0.24.0 0.0.0.3 area 0
+ network 10.0.34.0 0.0.0.3 area 0
+ network 192.168.40.0 0.0.0.255 area 0
  passive-interface g0/0
 ```
+
+### Verificación de selección de ruta
+
+Desde R1, el tráfico hacia 192.168.40.0/24 debe tomar la ruta A (R1 → R2 → R4) con costo total 100, en lugar de la ruta B (R1 → R3 → R4) con costo total 350.
+
+Verificar con:
+
+```ios
+show ip ospf neighbor
+show ip route ospf
+show ip ospf interface brief
+```
+
+El resultado esperado es que la tabla de routing de R1 muestre la ruta a 192.168.40.0/24 a través de R2.
 
 ## 9. Clasificacion y marcado de trafico
 
@@ -388,30 +459,40 @@ Aplicacion posible en el borde de entrada o en la salida hacia el servidor si de
 
 ## 13. Flujo recomendado de implementacion
 
-1. Monta la topologia fisica y asigna IPs.
-2. Verifica conectividad basica con ping.
-3. Configura EIGRP y comprueba la tabla de rutas.
-4. Ajusta bandwidth y delay de interfaces para crear la ruta preferida.
-5. Genera trafico pesado sin QoS y toma medidas.
-6. Aplica marcado, LLQ, CBWFQ, shaping y policing.
-7. Repite las pruebas y compara resultados.
+1. Monta la topologia fisica en GNS3 (routers, switches, VMs Linux).
+2. Asigna IPs a todos los equipos según el plan de direccionamiento.
+3. Verifica conectividad basica con ping entre LANs.
+4. Configura OSPF en todos los routers con `ip ospf cost` manual en las interfaces seriales.
+5. Comprueba que la ruta A (costo 100) es preferida sobre la ruta B (costo 350) en la tabla de rutas.
+6. Ajusta delay con el parámetro `delay` en interfaces (simulación visual en traceroute).
+7. Lanza tráfico pesado sin QoS y toma medidas de latencia y jitter con iperf3.
+8. Aplica marcado de tráfico (DSCP), LLQ, CBWFQ, shaping y policing.
+9. Repite las pruebas de iperf3 con QoS activo y compara resultados.
 
 ## 14. Comandos de validacion
 
-### Routing
+### Routing OSPF
 
 ```ios
-show ip route
-show ip eigrp topology
-show ip eigrp neighbors
+show ip route ospf
+show ip ospf neighbors
+show ip ospf interface brief
+show ip ospf interface s0/0/0
 ```
 
-### Interfaces y metricas
+### Verificar cost en interfaces
+
+```ios
+show ip ospf interface s0/0/0
+show running-config interface s0/0/0
+```
+
+### Interfaces y métricas
 
 ```ios
 show interfaces s0/0/0
 show interfaces s0/0/1
-show running-config interface s0/0/0
+show running-config
 ```
 
 ### QoS
@@ -422,11 +503,15 @@ show policy-map interface g0/0
 show access-lists
 ```
 
-### Pruebas desde el host
+### Pruebas desde hosts en GNS3
 
 ```bash
-ping 192.168.40.10
+# En una VM Linux (terminal)
+ping -c 4 192.168.40.10
 traceroute 192.168.40.10
+
+# Ver latencia con iperf3 (modo UDP)
+iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 10
 ```
 
 ## 15. Metricas a reportar
@@ -478,19 +563,24 @@ El punto clave del analisis es que el trafico de gaming deja de pelear contra de
 
 ## 18. Sugerencia final de implementacion
 
-Si quieres que el laboratorio quede mas cercano a una solucion profesional, hazlo en dos fases:
+Implementa el laboratorio completo en GNS3 de una sola vez:
 
-1. Fase 1: Packet Tracer para documentar la topologia y el routing.
-2. Fase 2: GNS3 para ejecutar iperf3, medir jitter real y capturar evidencia de QoS.
+1. **Preparación**: Descarga IOSv, crea VMs Ubuntu para clientes y servidor.
+2. **Topología**: Monta la red en GNS3 según el diagrama, con 4 routers y 3 VMs Linux.
+3. **Routing**: Configura OSPF con cost manual en interfaces seriales.
+4. **Pruebas baseline**: Ejecuta iperf3 sin QoS y registra latencia, jitter, pérdida.
+5. **QoS**: Aplica todas las políticas (marcado, LLQ, CBWFQ, shaping, policing).
+6. **Validación**: Repite iperf3 con QoS y compara resultados.
+7. **Documentación**: Captura outputs de `show` commands, gráficos de iperf3, análisis comparativo.
 
-Si luego quieres, se puede generar una version agresiva con las configuraciones completas por router, lista para copiar y pegar en IOS.
+GNS3 es superior a Packet Tracer porque permite tráfico real, mediciones precisas de jitter, y validación auténtica de QoS.
 
 ## 19. Configuraciones completas listas para copiar
 
 Este anexo junta la configuracion final por dispositivo. El orden recomendado es:
 
 1. Configurar primero IPs e interfaces.
-2. Activar EIGRP.
+2. Activar OSPF con cost manual en interfaces seriales.
 3. Verificar rutas.
 4. Aplicar marcado QoS en R1.
 5. Aplicar la politica de salida en la WAN de R1.
@@ -511,7 +601,7 @@ interface g0/0
 interface s0/0/0
  description ENLACE A R2
  ip address 10.0.12.1 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  clock rate 64000
  no shutdown
@@ -519,7 +609,7 @@ interface s0/0/0
 interface s0/0/1
  description ENLACE A R3
  ip address 10.0.13.1 255.255.255.252
- bandwidth 5000
+ ip ospf cost 200
  delay 20000
  clock rate 64000
  no shutdown
@@ -566,11 +656,10 @@ policy-map PM-PARENT-SHAPE
   shape average 8000000
   service-policy PM-WAN-CHILD
 
-router eigrp 100
- no auto-summary
- network 192.168.10.0 0.0.0.255
- network 10.0.12.0 0.0.0.3
- network 10.0.13.0 0.0.0.3
+router ospf 1
+ network 192.168.10.0 0.0.0.255 area 0
+ network 10.0.12.0 0.0.0.3 area 0
+ network 10.0.13.0 0.0.0.3 area 0
  passive-interface g0/0
 
 interface g0/0
@@ -594,22 +683,21 @@ no ip domain-lookup
 interface s0/0/0
  description ENLACE A R1
  ip address 10.0.12.2 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  no shutdown
 
 interface s0/0/1
  description ENLACE A R4
  ip address 10.0.24.1 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  clock rate 64000
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 10.0.12.0 0.0.0.3
- network 10.0.24.0 0.0.0.3
+router ospf 1
+ network 10.0.12.0 0.0.0.3 area 0
+ network 10.0.24.0 0.0.0.3 area 0
 
 end
 write memory
@@ -626,22 +714,21 @@ no ip domain-lookup
 interface s0/0/0
  description ENLACE A R1
  ip address 10.0.13.2 255.255.255.252
- bandwidth 5000
+ ip ospf cost 200
  delay 20000
  no shutdown
 
 interface s0/0/1
  description ENLACE A R4
  ip address 10.0.34.1 255.255.255.252
- bandwidth 5000
+ ip ospf cost 150
  delay 15000
  clock rate 64000
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 10.0.13.0 0.0.0.3
- network 10.0.34.0 0.0.0.3
+router ospf 1
+ network 10.0.13.0 0.0.0.3 area 0
+ network 10.0.34.0 0.0.0.3 area 0
 
 end
 write memory
@@ -658,14 +745,14 @@ no ip domain-lookup
 interface s0/0/0
  description ENLACE A R2
  ip address 10.0.24.2 255.255.255.252
- bandwidth 10000
+ ip ospf cost 50
  delay 5000
  no shutdown
 
 interface s0/0/1
  description ENLACE A R3
  ip address 10.0.34.2 255.255.255.252
- bandwidth 5000
+ ip ospf cost 150
  delay 15000
  no shutdown
 
@@ -674,11 +761,10 @@ interface g0/0
  ip address 192.168.40.1 255.255.255.0
  no shutdown
 
-router eigrp 100
- no auto-summary
- network 10.0.24.0 0.0.0.3
- network 10.0.34.0 0.0.0.3
- network 192.168.40.0 0.0.0.255
+router ospf 1
+ network 10.0.24.0 0.0.0.3 area 0
+ network 10.0.34.0 0.0.0.3 area 0
+ network 192.168.40.0 0.0.0.255 area 0
  passive-interface g0/0
 
 end
@@ -721,8 +807,8 @@ Gateway: 192.168.40.1
 
 ## 20. Secuencia de pruebas sugerida
 
-1. Desde R1 ejecuta `show ip eigrp neighbors` para confirmar adyacencias.
-2. Desde R1 ejecuta `show ip route` y verifica que la ruta preferida sea la de R2.
+1. Desde R1 ejecuta `show ip ospf neighbors` para confirmar adyacencias.
+2. Desde R1 ejecuta `show ip route ospf` y verifica que la ruta preferida sea la de R2 (costo 100).
 3. Desde el PC Gamer ejecuta `ping 192.168.40.10` durante una descarga TCP pesada.
 4. Levanta `iperf3` en el servidor.
 5. Corre el flujo de gaming UDP y registra jitter.
@@ -736,7 +822,7 @@ Gateway: 192.168.40.1
 
 ## 22. Nota de laboratorio
 
-Si Packet Tracer no acepta alguna politica jerarquica, conserva la logica del proyecto con EIGRP, marcado DSCP y colas simples. En GNS3 podras aplicar la version completa sin las limitaciones del simulador.
+Este proyecto debe implementarse completamente en GNS3 con IOSv. GNS3 soporta todas las políticas jerárquicas de QoS, iperf3 real, y mediciones precisas. Packet Tracer tiene limitaciones severas con OSPF jerarquico y QoS avanzado.
 
 ## 23. Guia de verificacion paso a paso
 
@@ -747,7 +833,7 @@ Esta seccion resume que deberias ver en cada fase y como confirmar que todo func
 | 1. Topologia fisica | Los 4 routers, 2 switches, 3 clientes y 1 servidor conectados segun el diagrama | En Packet Tracer o GNS3 revisa cada enlace y confirma que no haya puertos apagados |
 | 2. Direccionamiento IP | Cada interfaz del router y cada host con la IP correcta | En routers usa `show ip interface brief`; en PCs revisa configuracion IP manual |
 | 3. Enlaces WAN | R1-R2 y R2-R4 con mejores metricas que R1-R3 y R3-R4 | En routers usa `show running-config interface s0/0/x` y confirma `bandwidth` y `delay` |
-| 4. Routing EIGRP | Debe aparecer la red remota del servidor y la ruta preferida por R2 | Usa `show ip route` y `show ip eigrp topology`; la ruta via R2 debe verse como la principal |
+| 4. Routing OSPF | Debe aparecer la red remota del servidor y la ruta preferida por R2 con costo 100 | Usa `show ip route ospf` y `show ip ospf interface brief`; la ruta via R2 debe verse como la principal |
 | 5. Conectividad base | El cliente debe poder llegar al servidor sin QoS | Haz `ping 192.168.40.10` y `traceroute 192.168.40.10` desde el cliente |
 | 6. Trafico de carga | El servidor debe recibir sesiones iperf3 simultaneas de gaming, streaming y bulk | Levanta `iperf3 -s` en el servidor y ejecuta los tres clientes; verifica que haya trafico activo |
 | 7. Sin QoS | El ping sube de forma visible cuando la descarga satura el enlace | Ejecuta ping continuo durante una descarga y compara RTT, variacion y perdida |
@@ -759,9 +845,9 @@ Esta seccion resume que deberias ver en cada fase y como confirmar que todo func
 
 ### Lectura esperada de resultados
 
-- Si `show ip route` no muestra la red del servidor, el problema esta en el routing EIGRP o en alguna interfaz apagada.
+- Si `show ip route ospf` no muestra la red del servidor, el problema esta en el routing OSPF o en alguna interfaz apagada.
 - Si `ping` falla, revisa primero IP, gateway y estado de interfaces antes de revisar QoS.
-- Si EIGRP funciona pero el trafico sigue yendo por la ruta menos preferida, revisa los valores de `bandwidth` y `delay`.
+- Si OSPF funciona pero el trafico sigue yendo por la ruta menos preferida, revisa los valores de `ip ospf cost`.
 - Si `show policy-map interface` no aumenta contadores, revisa que la ACL coincida con el puerto correcto y que la policy este aplicada en la interfaz correcta.
 - Si no ves mejora en RTT, probablemente no hay congestion suficiente; aumenta el trafico bulk o reduce temporalmente el ancho de banda del enlace.
 
