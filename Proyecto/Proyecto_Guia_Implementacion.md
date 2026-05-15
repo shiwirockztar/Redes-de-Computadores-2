@@ -42,14 +42,14 @@ Ruta B: mayor retardo (costo OSPF 350)
 
 | Equipo | Rol | Función |
 |--------|-----|---------|
-| PC Gamer | VM Linux Cliente | Genera tráfico UDP sensible a latencia (puerto 5001) |
-| PC Streaming | VM Linux Cliente | Genera tráfico UDP/TCP continuo (puerto 5002) |
-| PC Descargas | VM Linux Cliente | Genera tráfico TCP pesado (puerto 5003) |
+| PC Gamer | VPCS Cliente | Genera tráfico UDP sensible a latencia (puerto 5001) |
+| PC Streaming | VPCS Cliente | Genera tráfico UDP/TCP continuo (puerto 5002) |
+| PC Descargas | VPCS Cliente | Genera tráfico TCP pesado (puerto 5003) |
 | R1 | Router de borde (cliente) | Entrada de la red, marca tráfico, aplica QoS |
 | R2 | Router intermedio (ruta rápida) | Part of ruta A (costo 50 por enlace) |
 | R3 | Router intermedio (ruta lenta) | Parte de ruta B (costo 200/150) |
 | R4 | Router de borde (servidor) | Salida de la red |
-| Servidor | VM Linux | Responde con iperf3 en puerto 5001, 5002, 5003 |
+| Servidor | VPCS (puerto de gestión) | Responde a pings; para pruebas con iperf3 usa un host externo (ver nota) |
 
 ## 1.2 Plan de Direccionamiento IP
 
@@ -81,7 +81,7 @@ Ruta B: mayor retardo (costo OSPF 350)
 | R4 | S0/0/1 | 10.0.34.2 | 255.255.255.252 |
 | R4 | G0/0 | 192.168.40.1 | 255.255.255.0 |
 
-**Hosts clientes (VMs Linux):**
+**Hosts clientes (VPCS):**
 
 | Host | IP | Gateway | Propósito |
 |------|----|----|---------|
@@ -147,19 +147,23 @@ La ruta A simula un camino rápido (bajo retardo, alto ancho de banda) mientras 
 
 1. GNS3 instalado (v2.2+)
 2. IOSv o IOU descargados (imágenes Cisco)
-3. Ubuntu/Debian VMs preparadas (al menos 2GB RAM cada una)
-4. iperf3 instalado en VMs Linux
+3. VPCS configuradas para los hosts (una por equipo)
+4. iperf3 instalado en un host externo o contenedor (opcional, ver nota)
 
-### Instalación de iperf3 en VMs Linux
+### Instalación de iperf3 (host externo o contenedor)
+
+VPCS no ejecuta `iperf3`. Si necesitas medir throughput con `iperf3`, instala `iperf3` en un host externo/VM o en un contenedor en la máquina que ejecuta GNS3:
 
 ```bash
-# En cada VM Ubuntu/Debian
+# En el host/VM que actuará como servidor iperf3
 sudo apt-get update
 sudo apt-get install -y iperf3
 
 # Verificar instalación
 iperf3 --version
 ```
+
+Conecta el VPCS cliente hacia la IP del host/VM que corre `iperf3`.
 
 ## 2.2 Montaje de la Topología
 
@@ -176,11 +180,18 @@ iperf3 --version
    - Renombra como R1, R2, R3, R4
    - Inicia todos (memoria: 512MB cada uno)
 
-2. **VMs Linux**: Crea 4 VMs con Ubuntu/Debian
-   - `PC_Gamer` (192.168.10.10)
-   - `PC_Streaming` (192.168.10.20)
-   - `PC_Descargas` (192.168.10.30)
-   - `Servidor` (192.168.40.10)
+2. **VPCS**: Crea 4 VPCS en GNS3 (una por cada host)
+  - `PC_Gamer` (192.168.10.10)
+  - `PC_Streaming` (192.168.10.20)
+  - `PC_Descargas` (192.168.10.30)
+  - `Servidor` (192.168.40.10)  (nota: VPCS no ejecuta iperf3)
+
+  **Agregar servidor VPCS (opción A):**
+  - Arrastra un nuevo VPCS al proyecto y renómbralo como `Servidor`.
+  - Conéctalo al switch `SW2`, que enlaza con `R4`.
+  - Abre su consola por telnet usando el puerto asignado por GNS3.
+  - Configura IP, gateway y guarda la configuración con `save`.
+  - Verifica conectividad con `ping` hacia `192.168.40.1`.
 
 3. **Switches**: Agregar 2 switches ethernet (simular LANs)
    - `SW1` (conecta cliente con R1)
@@ -205,32 +216,70 @@ iperf3 --version
 
 ## 2.3 Configuración de Direcciones IP
 
-### Configurar VMs Linux
+### Configurar VPCS (PCs y Servidor)
 
-**En PC_Gamer:**
+En este proyecto usamos exclusivamente VPCS. Cada VPCS se configura mediante telnet al puerto local asignado por GNS3. Ejemplo de pasos (puertos de ejemplo):
+
+1. PC_Gamer (puerto telnet: `5000`):
+
 ```bash
-sudo nano /etc/netplan/00-installer-config.yaml
+telnet localhost 5000
+# en el prompt de VPCS
+ip 192.168.10.10/24 192.168.10.1
+save
+ping 192.168.10.1
+exit
 ```
 
-```yaml
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: no
-      addresses: [192.168.10.10/24]
-      gateway4: 192.168.10.1
-      nameservers:
-        addresses: [8.8.8.8, 8.8.4.4]
-```
+2. PC_Streaming (puerto telnet: `5002`):
 
-Repetir para PC_Streaming (192.168.10.20) y PC_Descargas (192.168.10.30) y Servidor (192.168.40.10)
-
-Aplicar cambios:
 ```bash
-sudo netplan apply
-ip addr show eth0  # Verificar
+telnet localhost 5002
+ip 192.168.10.20/24 192.168.10.1
+save
+ping 192.168.10.1
+exit
 ```
+
+3. PC_Descargas (puerto telnet: `5004`):
+
+```bash
+telnet localhost 5004
+ip 192.168.10.30/24 192.168.10.1
+save
+ping 192.168.10.1
+exit
+```
+
+4. Servidor (VPCS de gestión): usa el puerto que GNS3 asigne; sustituye `<PUERTO_SERVIDOR>` por el valor correcto:
+
+```bash
+telnet localhost <PUERTO_SERVIDOR>
+ip 192.168.40.10/24 192.168.40.1
+save
+ping 192.168.40.1
+exit
+```
+
+Puertos de consola/telnet para routers (ejemplos asignados en tu proyecto):
+
+| Dispositivo | Puerto telnet |
+|-------------|---------------|
+| PC-Gamer | 5000 |
+| PC-Streaming | 5002 |
+| PC-Descargas | 5004 |
+| R1 (consola) | 5006 |
+| R2 (consola) | 5007 |
+| R3 (consola) | 5008 |
+| R4 (consola) | 5009 |
+
+Notas:
+- Los puertos `5001..5004` son ejemplos; usa los puertos que GNS3 asignó a cada VPCS en tu proyecto.
+- Sintaxis `ip` en VPCS: `ip <dirección>/<prefijo> <gateway>`.
+- `save` persiste la configuración del VPCS entre reinicios del proyecto.
+- VPCS es limitado: no puede ejecutar servicios complejos como `iperf3`. Para pruebas de throughput puedes:
+  - usar un host/VM externo con `iperf3` y apuntar los VPCS hacia él, o
+  - ejecutar contenedores/VM ligeros en el host si necesitas iperf3 dentro del laboratorio.
 
 ### Configurar R1
 
