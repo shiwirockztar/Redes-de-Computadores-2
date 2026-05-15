@@ -18,7 +18,9 @@
 
 ---
 
-# Topología del Lab 4
+# Topología del Lab 4 - Visualización por Áreas
+
+## Vista General: Equipos y Conexiones
 
 ```
 LAN_A              LAN_B                                  LAN_C
@@ -32,6 +34,208 @@ Fa0/1              Fa0/1      Fa0/0                       s0/0
   |                  |          |                           |
   +------------------+-----Switch1----+-----Serial--------+
       e0                e1             e2               
+```
+
+## Vista Detallada: Áreas OSPF (Área 1 sin Área 0)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                              ÁREA 1 (No-Backbone)                          │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ Red: 192.168.78.128/26 (Switch1) - Broadcast Domain            │       │
+│  │                                                                 │       │
+│  │    Fa0/1 (192.168.78.129)    Fa0/1 (192.168.78.130)           │       │
+│  │           │                          │                         │       │
+│  │           R1  ────────Switch1────── R2                         │       │
+│  │          /│\                        /│\                        │       │
+│  │         / │ \                      / │ \                       │       │
+│  │        /  │  \                    /  │  \                      │       │
+│  │       /   │   \ ─────e2────────  /   │   \                     │       │
+│  │      /    │                      \   │    \                    │       │
+│  │     /     │                       \  │     \                   │       │
+│  │    Fa0/0  │                    Fa0/0 │    Fa0/0               │       │
+│  │   │       │                    │     │    │                   │       │
+│  │ LAN_A     │                  LAN_B   │  R3                    │       │
+│  │           │                          │  /│                    │       │
+│  │      (Pasiva)                  (Pasiva) / │                    │       │
+│  │                                        / s0/0                  │       │
+│  │                                       /  │                     │       │
+│  │                                      /   │                     │       │
+│  │                        ┌────────────────┘                      │       │
+│  │                        │                                       │       │
+│  └────────────────────────┼──────────────────────────────────────┘       │
+│                           │                                             │
+│                    (Límite de Área 1)                                   │
+│                      (Sin Área 0)                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                                ❌ PROBLEMA
+                          No hay enlace a Área 0
+              → Los routers en Área 1 NO pueden
+              comunicarse con routers en otras áreas
+              → OSPF necesita BACKBONE (Área 0)
+```
+
+## Vista Alternativa: ¿Qué Pasaría con Área 0?
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│   ┌────────────────────────────────────────────────────────────────────┐   │
+│   │              ÁREA 0 (BACKBONE - Obligatorio)                      │   │
+│   │  ◯ R3 (Punto de conexión entre áreas)                             │   │
+│   │   s0/0: 192.168.78.193 ───────┬────── s0/0: 192.168.78.194       │   │
+│   │                                 │                                  │   │
+│   │                              (Serial)                              │   │
+│   │                                 │                                  │   │
+│   │                            ┌────┘                                  │   │
+│   │                            │                                       │   │
+│   └────────────────────────────┼────────────────────────────────────────┘   │
+│                                │                                            │
+│   ┌────────────────────────────┼────────────────────────────────────────┐   │
+│   │ ÁREA 1 (Secundaria)        │                                        │   │
+│   │  R1 - Switch1 - R2         │                                        │   │
+│   │  (Conectada a Área 0)      │                                        │   │
+│   └────────────────────────────┼────────────────────────────────────────┘   │
+│                                │                                            │
+│   ┌────────────────────────────┼────────────────────────────────────────┐   │
+│   │ ÁREA 2 (u otra)            │                                        │   │
+│   │  R4 + LAN_C                │                                        │   │
+│   │  (Podría existir)          │                                        │   │
+│   └────────────────────────────┼────────────────────────────────────────┘   │
+│                                │                                            │
+│                           ✅ ÁREA 0 conecta                                │
+│                        todas las áreas                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Vista por Tipo de Enlace
+
+```
+ENLACES BROADCAST (Necesitan DR/BDR):
+
+    ┌─────────────────────────────┐
+    │  Switch1 (192.168.78.128)   │  ← Dominio Broadcast
+    │  (Necesita DR y BDR)        │
+    └────────┬────────┬───────────┘
+             │        │
+          Fa0/1     Fa0/1        Fa0/0
+             │        │            │
+             R1       R2           R3
+          (DR)      (BDR)      (DROther)
+
+
+ENLACES POINT-TO-POINT (NO necesitan DR/BDR):
+
+    R3 ──────Serial──────┬────── R4
+    s0/0: 192.168.78.193 │  s0/0: 192.168.78.194
+                         │
+                    ❌ Sin DR/BDR
+                    ✅ Adyacencia FULL directa
+```
+
+## Mapa de Redes por Interfaz
+
+```
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    TOPOLOGÍA CON IDENTIFICACIÓN DE REDES                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────┐
+│   LAN_A             │  Red: 192.168.78.0/26
+│   Interfaz Pasiva   │  (sin OSPF en la LAN)
+└──────────┬──────────┘
+           │ Fa0/0: 192.168.78.1
+           │
+           R1 ─────────────── Fa0/1: 192.168.78.129 ────┐
+           │                                             │
+           │         ┌─────────────────────────────┐    │
+           │         │   Switch1                   │    │
+           │         │  Red: 192.168.78.128/26    │    │
+           │         │  (BROADCAST - Área 1)      │    │
+           │         │                             │    │
+           │    Fa0/1: 192.168.78.129 ◯          │    │
+           │         │                 R1         │    │
+           │         │                 ◯ DR       │    │
+           └─────────┤                             │    │
+                     │  Fa0/1: 192.168.78.130 ◯  │    │
+                     │           R2                │    │
+                     │           ◯ BDR             │    │
+                     │                             │    │
+                     │  Fa0/0: 192.168.78.131 ◯  │    │
+                     │         R3                 │    │
+                     │         ◯ DROther          │    │
+                     └──────┬──────────────────────┘    │
+                            │                           │
+                         s0/0: 192.168.78.193           │
+                            │                           │
+                            │ Serial                     │
+                            │                           │
+                         s0/0: 192.168.78.194          │
+                            │                           │
+              ┌─────────────┘                           │
+              │                              Red: 192.168.78.192/29
+              R4                         (POINT-to-POINT - Área 1)
+              │
+          Fa0/0: 192.168.78.201
+              │
+       ┌──────┴──────┐
+       │             │
+    LAN_C          (Pasiva)
+   Red: 192.168.78.200/29
+   (sin OSPF en la LAN)
+```
+
+## Estados de Adyacencia en Switch1
+
+```
+╔═══════════════════════════════════════════════════════════════════════╗
+║         ADYACENCIAS EN BROADCAST DOMAIN (Switch1)                    ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+SIN DR/BDR (Ideal para 3 routers):
+  R1 ↔ R2 ↔ R3  → 6 adyacencias posibles (n(n-1)/2 = 3×2/2 = 3)
+
+CON DR/BDR (Lo que sucede realmente):
+  
+  Parámetros:
+  • R1: IP = 192.168.78.129, Prioridad = 1
+  • R2: IP = 192.168.78.130, Prioridad = 1
+  • R3: IP = 192.168.78.131, Prioridad = 1
+
+  Elección:
+  ┌─────────────────┐
+  │ Más alta prioridad → Empate (todos = 1)
+  │ Más alto Router ID → R3 (192.168.78.131)
+  │ DR = R3
+  └─────────────────┘
+
+  ┌─────────────────┐
+  │ Segunda prioridad → Empate
+  │ Segundo Router ID → R2 (192.168.78.130)
+  │ BDR = R2
+  └─────────────────┘
+
+  Topología de adyacencias:
+  
+            DR (R3)
+            ◯  ◀──  Recibe LSAs de todos
+           ╱│╲
+          ╱ │ ╲
+         ╱  │  ╲
+        ◯   │   ◯
+       R1   │   R2
+     (DRO) (BDR)
+     (DRO)
+      
+  Adyacencias reales:
+  • R1 ↔ R3 (DR)      ← FULL
+  • R2 ↔ R3 (DR)      ← FULL
+  • R1 ↔ R2           ← NO (no se conectan directamente)
+  
+  Total: 2 adyacencias en lugar de 3 ✅ (eficiencia)
 ```
 
 ## Plan de Direccionamiento IP
@@ -231,6 +435,14 @@ write memory
 show ip route
 ```
 
+## Paso 4: Verificación de Tablas de Enrutamiento
+
+### Comando Básico
+
+```ios
+show ip route
+```
+
 ### En R1
 
 ```
@@ -251,12 +463,66 @@ C       192.168.78.0 is directly connected, FastEthernet0/0
 C       192.168.78.128 is directly connected, FastEthernet0/1
 ```
 
+### Análisis Visual - Comparación: CON Área 1 vs CON Área 0+1
+
+```
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                  TABLA DE RUTAS - COMPARACIÓN DE ESCENARIOS              ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+ESCENARIO 1: TODOS EN ÁREA 1 (SIN ÁREA 0) ❌
+──────────────────────────────────────────────
+
+R1# show ip route
+
+     192.168.78.0/24 is variably subnetted, 2 subnets, 2 masks
+C       192.168.78.0/26 is directly connected, FastEthernet0/0
+C       192.168.78.128/26 is directly connected, FastEthernet0/1
+
+┌──────────────────────────────────────────────┐
+│ ❌ RESULTADO ESPERADO:                       │
+├──────────────────────────────────────────────┤
+│ • SOLO rutas Connected (C)                   │
+│ • SIN rutas OSPF (sin "O")                   │
+│ • SIN rutas inter-área (sin "IA")           │
+│                                              │
+│ CAUSA: No hay backbone (Área 0)             │
+│        → Área 1 aislada                      │
+│        → No puede conectarse a otras áreas  │
+└──────────────────────────────────────────────┘
+
+
+ESCENARIO 2: ÁREA 1 + ÁREA 0 (BACKBONE) ✅
+──────────────────────────────────────────────
+
+R1# show ip route
+
+     192.168.78.0/24 is variably subnetted, 4 subnets, 3 masks
+C       192.168.78.0/26 is directly connected, FastEthernet0/0
+C       192.168.78.128/26 is directly connected, FastEthernet0/1
+O       192.168.78.192/29 [110/2] via 192.168.78.129, 00:05:32, FastEthernet0/1
+O       192.168.78.200/29 [110/3] via 192.168.78.129, 00:05:32, FastEthernet0/1
+
+┌──────────────────────────────────────────────┐
+│ ✅ RESULTADO ESPERADO:                       │
+├──────────────────────────────────────────────┤
+│ • Rutas Connected (C) = directas            │
+│ • Rutas OSPF (O) = hacia redes remotas      │
+│ • [110/X] = Distancia OSPF/Costo            │
+│                                              │
+│ CAUSA: Área 0 conecta Área 1 a 2            │
+│        → Información de rutas propagada     │
+│        → R1 conoce redes de Área 2          │
+└──────────────────────────────────────────────┘
+```
+
 ### Análisis Esperado
 
-**RESULTADO SIN ÁREA 0**:
+**CON ÁREA 1 SIN ÁREA 0**:
 - ❌ No verás rutas OSPF (sin "O")
 - ❌ Solo verás redes conectadas (con "C")
 - ✅ Esto es correcto y demuestra por qué se necesita área 0
+- ✅ Muestra el propósito educativo del laboratorio
 
 **¿Por qué?** En OSPF, todas las áreas deben estar conectadas al área 0 (backbone). Como todos nuestros routers están en área 1, no hay backbone que los conecte.
 
@@ -276,15 +542,23 @@ debug ip ospf adj
 end
 ```
 
-### Salida Esperada (Console)
+### Salida Esperada (Console) - Sin Área 0
 
 ```
 *Mar  1 00:05:42.134: OSPF: Interface FastEthernet0/1 going Up
-*Mar  1 00:05:42.234: OSPF: Build router LSA for area 1, router ID 192.168.78.1
+*Mar  1 00:05:42.234: OSPF: Build router LSA for area 1, router ID 192.168.78.129
 *Mar  1 00:05:42.334: OSPF: Aging LSA in Database...
 *Mar  1 00:05:47.134: OSPF: DR/BDR election on FastEthernet0/1
-*Mar  1 00:05:47.234: OSPF: Area 1 elected DR 192.168.78.1 on FastEthernet0/1
-*Mar  1 00:05:47.334: OSPF: Area 1 elected BDR 192.168.78.129 on FastEthernet0/1
+*Mar  1 00:05:47.234: OSPF: Area 1 elected DR 192.168.78.131 on FastEthernet0/1
+*Mar  1 00:05:47.334: OSPF: Area 1 elected BDR 192.168.78.130 on FastEthernet0/1
+
+┌────────────────────────────────────────────────────────┐
+│ ✓ Se eligen DR/BDR normalmente                        │
+│ ✓ Se intercambian adyacencias dentro de Área 1        │
+│ ✓ Se generan LSAs de routers y redes                  │
+│ ✗ No hay información inter-área                       │
+│ ✗ No se propagan rutas a otras áreas                  │
+└────────────────────────────────────────────────────────┘
 ```
 
 ### Desactivar Debugging
@@ -295,18 +569,9 @@ undebug all
 
 ---
 
-## Explicación: ¿Por qué no hay conectividad con Área 1?
+# Diagramas Visuales: Impacto de Áreas
 
-| Aspecto | Explicación |
-|--------|------------|
-| **Área 0 es obligatoria** | OSPF requiere un área 0 (backbone) para que todas las áreas se comuniquen |
-| **Nuestra topología** | Todos en área 1 → sin área 0 → sin backbone → sin comunicación inter-área |
-| **Resultado** | Cada router solo conoce las redes de su área (área 1), pero no puede intercambiar información entre áreas |
-| **Conclusión** | Las rutas OSPF solo aparecerían si tuviéramos área 0 o si usáramos ABR (routers de borde de área) |
-
-**Para tener conectividad completa**, deberías:
-- Opción A: Mover todos a área 0
-- Opción B: Crear un router con interfaz en área 0 y otra en área 1 (ABR - Area Border Router)
+[Los diagramas visuales se encuentran en la sección anterior]
 
 ---
 
@@ -543,26 +808,72 @@ En redes Ethernet broadcast (como un switch), múltiples routers están conectad
 
 ### Determinación en Nuestra Topología
 
-#### Red Switch1 (192.168.78.128/26)
+### Red Switch1 (192.168.78.128/26) - BROADCAST Domain
 
-Routers conectados: R1, R2, R3
+**Criterios de Elección**:
 
-**Router IDs iniciales** (asignados automáticamente):
-- R1: 192.168.78.1
-- R2: 192.168.78.130
-- R3: 192.168.78.131
+```
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 1: Revisar Prioridad OSPF                            │
+├─────────────────────────────────────────────────────────────┤
+│  R1: Prioridad = 1 (default)  ← Todas iguales             │
+│  R2: Prioridad = 1 (default)  ← EMPATE                    │
+│  R3: Prioridad = 1 (default)  ↓                           │
+└─────────────────────────────────────────────────────────────┘
 
-**Prioridades** (todas default = 1):
-- R1: 1
-- R2: 1
-- R3: 1
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 2: Revisar Router ID (si prioridad igual)            │
+├─────────────────────────────────────────────────────────────┤
+│  R1: Router ID = 192.168.78.129  (Fa0/1 es la IP más alta)│
+│  R2: Router ID = 192.168.78.130  (Fa0/1 es la IP más alta)│
+│  R3: Router ID = 192.168.78.193  (S0/0 es la IP más alta) │
+│                                                             │
+│  COMPARACIÓN (mayor Router ID gana):                       │
+│  192.168.78.193 (R3) > 192.168.78.130 (R2) > 192.168.78.129 (R1)
+│                                                             │
+│  🏆 GANADOR: R3 con 192.168.78.193 → DR                   │
+└─────────────────────────────────────────────────────────────┘
 
-**Elección**:
-1. Empate en prioridad → comparar Router ID
-2. R3 (192.168.78.131) > R2 (192.168.78.130) > R1 (192.168.78.1)
-3. **DR = R3** (192.168.78.131)
-4. **BDR = R2** (192.168.78.130)
-5. **DROther = R1**
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 3: Segunda posición (BDR) - Mismo proceso            │
+├─────────────────────────────────────────────────────────────┤
+│  Después de elegir DR (R3):                                │
+│  R1: Router ID = 192.168.78.129                           │
+│  R2: Router ID = 192.168.78.130                           │
+│                                                             │
+│  COMPARACIÓN:                                              │
+│  192.168.78.130 (R2) > 192.168.78.129 (R1)                │
+│                                                             │
+│  🥈 GANADOR: R2 con 192.168.78.130 → BDR                  │
+│  🥉 TERCERO: R1 → DROther                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Resultado Visual**:
+
+```
+        ┌─────────────────────────────────────┐
+        │       Switch1 OSPF Topology         │
+        │  Red: 192.168.78.128/26             │
+        └─────────────────────────────────────┘
+                        │
+         ┌──────────────┼──────────────┐
+         │              │              │
+       ◯ R1           ◯ R3            ◯ R2
+   DROther      ╔════ DR ════╗    ╔══ BDR ══╗
+   192.168.78.1 ║(193)      ║    ║(130)   ║
+                ║MASTER     ║    ║Respaldo║
+                ╚═══════════╝    ╚════════╝
+
+Adyacencias OSPF en Switch1:
+  
+  DROther (R1) ────✓──── DR (R3)      ← FULL
+  DROther (R1)     X    DROther (R2)  ← NO (no adyacente)
+  BDR (R2) ────✓──── DR (R3)          ← FULL
+
+Total de adyacencias: 2 (eficiente)
+Sin DR/BDR serían: 3(3-1)/2 = 3 (innecesario)
+```
 
 #### Enlace Serial R3-R4 (192.168.78.192/29)
 
@@ -806,40 +1117,211 @@ clear ip ospf process
 
 ## ¿Cómo se Establece una Vecindad OSPF?
 
+## ¿Cómo se Establece una Vecindad OSPF?
+
 ### Fases del Establecimiento de Vecindad
 
 ```
+NORMAL ──────────────► INTERFAZ CAE ──────────────► SE REACTIVA
+
+Router A              (Wait 40 seg)                Router A
+(Estado FULL)         (Dead Timer)                 (Estado DOWN)
+   │                      │                           │
+   │◄───── HELLO ────────►│                          │ Escucha
+   │     periódico         │                          │
+   │◄─────────────────────►│                          │
+   │                       │                          │
+   
+    ◀───────────────────────────────────────────────────▶
+    
+Cuando se reactiva:
+
 Router A                          Router B
-   |                                 |
-   |--- HELLO (224.0.0.5:50) ------->|  Fase 1: DOWN
-   |                                 |
-   |<----- HELLO ----------------------|  Fase 2: INIT
-   |                                 |
-   |--- DBD (Database Description) --->|  Fase 3: EXSTART
-   |                                 |
-   |<----- DBD ----------------------- |
-   |                                 |
-   |--- LSR (Link State Request) ----->|  Fase 4: EXCHANGE
-   |                                 |
-   |--- LSU (Link State Update) ------>|
-   |                                 |
-   |<----- LSA (Link State Ack) ------- |  Fase 5: LOADING
-   |                                 |
-   |                                 |
-   +--- FULL Adyacencia Establecida ---+  Fase 6: FULL
+   │                                 │
+   │--- HELLO (224.0.0.5:50) ------->│  
+   │    (Hola, soy R1)               │
+   │                                 │
+   │                          ✓ Estado INIT
+   │                          ✓ Veo a R1
+   │                                 │
+   │<----- HELLO ──────────────────|
+   │    (Hola, soy R2,                |
+   │     veo a R1)                    │
+   │                                 │
+   │          ✓ Estado 2-WAY         |
+   │       Bidireccional OK           |
+   │                                 │
+   │--- DBD (Seq=1234, I=1, M=1) --->│
+   │    (Master: R1)                  │
+   │                                 │
+   │                         ✓ Estado EXSTART
+   │                                 │
+   │<----- DBD (Seq=1235, S=0) ------|
+   │    (Slave: R2, responde)         │
+   │                                 │
+   │          ✓ Estado EXCHANGE      │
+   │     Intercambiando DB            │
+   │                                 │
+   │--- LSR ----------------------->|
+   │  (¿Dame la LSA X?)              │
+   │                                 │
+   │<----- LSU ──────────────────|
+   │  (Aquí está la LSA X)            │
+   │                                 │
+   │--- LSAck -------------------->|
+   │  (Confirmo recepción)            │
+   │                                 │
+   │          ✓ Estado LOADING       │
+   │      Intercambiando LSAs         │
+   │                                 │
+   │                         ✓ Estado FULL
+   │◄─────── Vecindad ESTABLECIDA ───►|
+   │     (sincronizado)               │
+   │                                 │
 ```
 
-### Estados de Adyacencia
+### Estados de Adyacencia - Máquina de Estados
 
-| Estado | Significado | Acciones |
-|--------|-----------|---------|
-| **DOWN** | Sin vecino | Escuchando HELLOs |
-| **INIT** | HELLO recibido pero no bidireccional | Esperando HELLO propio en respuesta |
-| **2-WAY** | Bidireccional (ambos ven HELLOs del otro) | Negociación de DR/BDR |
-| **EXSTART** | Preparación para intercambio DB | Elegir master/slave |
-| **EXCHANGE** | Intercambiando descriptores DB (DBD) | Enviando DBDs |
-| **LOADING** | Pidiendo LSAs específicas | Enviando LSRs y LSUs |
-| **FULL** | Adyacencia completamente establecida ✅ | Vecino sincronizado |
+```
+                    ┌─────────────────────────────────────┐
+                    │         DOWN (Inicial)              │
+                    │  ✓ Escuchando HELLOs               │
+                    └────────────────┬────────────────────┘
+                                     │
+                    ◀────────────────┘
+                    │ HELLO recibido
+                    │
+                    ▼
+        ┌─────────────────────────────────────┐
+        │         INIT                        │
+        │  ✓ HELLO recibido de vecino        │
+        │  ✓ Aún no ve nuestro HELLO        │
+        │  ✓ Esperando HELLO de vuelta      │
+        └────────────┬────────────────────────┘
+                     │
+                     │ Recibimos HELLO que nos incluye
+                     │
+                     ▼
+        ┌─────────────────────────────────────┐
+        │         2-WAY                       │
+        │  ✓ Comunicación BIDIRECCIONAL      │
+        │  ✓ Ambos se ven en HELLOs         │
+        │  ✓ DR/BDR confirmado             │
+        └────────────┬────────────────────────┘
+                     │
+                     │ Para Broadcast: listo
+                     │ Para Point-to-Point: continúa
+                     │
+              ┌──────┴────────┐
+              │               │
+              ▼               ▼
+    (Broadcast)      (Point-to-Point)
+    EXSTART         En algunos casos
+                    puede ir directo
+                    a FULL
+              
+              ▼
+        ┌─────────────────────────────────────┐
+        │         EXSTART                     │
+        │  ✓ Inicio intercambio base datos   │
+        │  ✓ Elegir Master/Slave            │
+        │  ✓ Negociar sequence number       │
+        └────────────┬────────────────────────┘
+                     │
+                     │ DBD intercambiados
+                     │
+                     ▼
+        ┌─────────────────────────────────────┐
+        │         EXCHANGE                    │
+        │  ✓ Intercambiando DBDs             │
+        │  ✓ Enviando listado de LSAs       │
+        │  ✓ Master entra lista              │
+        └────────────┬────────────────────────┘
+                     │
+                     │ Identific. de LSAs nuevas
+                     │
+                     ▼
+        ┌─────────────────────────────────────┐
+        │         LOADING                     │
+        │  ✓ Pidiendo LSAs específicas (LSR)│
+        │  ✓ Recibiendo LSAs (LSU)          │
+        │  ✓ Confirmando recepción (LSAck)  │
+        └────────────┬────────────────────────┘
+                     │
+                     │ Todas las LSAs sincronizadas
+                     │ BD completa recibida
+                     │
+                     ▼
+        ┌─────────────────────────────────────┐
+        │         FULL ✅                     │
+        │  ✓ Adyacencia completamente       │
+        │    establecida                     │
+        │  ✓ Base de datos sincronizada     │
+        │  ✓ Vecino en topología OSPF       │
+        └─────────────────────────────────────┘
+```
+
+### Tipos de Paquetes OSPF (Con Banderas)
+
+```
+╔═══════════════════════════════════════════════════════════════╗
+║              PAQUETES OSPF EN LA SECUENCIA                   ║
+╚═══════════════════════════════════════════════════════════════╝
+
+1. HELLO
+   ┌─────────────────────────────────────┐
+   │ Destino: 224.0.0.5 (multicast)     │
+   │ Puerto: UDP 50                      │
+   │ Contenido:                          │
+   │  • Router ID del origen             │
+   │  • Área OSPF                        │
+   │  • Intervalo Hello: 10 seg          │
+   │  • Intervalo Muerto: 40 seg         │
+   │  • DR detectado                     │
+   │  • BDR detectado                    │
+   │  • Lista de vecinos vistos ✓        │
+   └─────────────────────────────────────┘
+
+2. Database Description (DBD)
+   ┌─────────────────────────────────────┐
+   │ Banderas:                           │
+   │  • I (Init) = 1: Primer DBD         │
+   │  • M (More) = 1: Hay más DBDs      │
+   │  • MS (Master/Slave) = 1: Master   │
+   │ Contenido:                          │
+   │  • MTU de interfaz                  │
+   │  • DD Sequence Number               │
+   │  • Resumen de LSAs conocidas        │
+   └─────────────────────────────────────┘
+
+3. Link State Request (LSR)
+   ┌─────────────────────────────────────┐
+   │ Contenido:                          │
+   │  • LS Type (Router, Network, etc)  │
+   │  • LS ID                            │
+   │  • Advertising Router               │
+   │ Significado:                        │
+   │  "¿Puedes enviarme esta LSA?"      │
+   └─────────────────────────────────────┘
+
+4. Link State Update (LSU)
+   ┌─────────────────────────────────────┐
+   │ Contenido:                          │
+   │  • LSA 1 (completa)                │
+   │  • LSA 2 (completa)                │
+   │  • ... (más LSAs)                   │
+   │ Significado:                        │
+   │  "Aquí están las LSAs solicitadas" │
+   └─────────────────────────────────────┘
+
+5. Link State Acknowledgment (LSAck)
+   ┌─────────────────────────────────────┐
+   │ Contenido:                          │
+   │  • Encabezados de LSAs recibidas   │
+   │ Significado:                        │
+   │  "Confirmo que recibí estas LSAs"  │
+   └─────────────────────────────────────┘
+```
 
 ---
 
@@ -1019,32 +1501,220 @@ OSPF LSAck Payload
 
 ## Secuencia Temporal Completa Capturada
 
+## Secuencia Temporal Completa Capturada
+
 ### Con la Interfaz Cayendo y Levantando
 
 ```
-Timestamp    Paquete              De              A               Estado
-0.000        HELLO               R1              224.0.0.5       (antes de shutdown)
-0.010        HELLO (normal)      R2/R3           224.0.0.5       (normal)
+╔════════════════════════════════════════════════════════════════════════════╗
+║                   TIMELINE DE ESTABLECIMIENTO DE VECINDAD                 ║
+╚════════════════════════════════════════════════════════════════════════════╝
 
-[15 segundos de funcionamiento normal]
+FASE 1: FUNCIONAMIENTO NORMAL (Antes del shutdown)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-15.000       Shutdown en R1      -               -               DOWN
-16.000       HELLO recibido pero sin R1         R2/R3 esperan   INIT
-20.000       Dead timer expira                  -               -
-20.100       HELLO (sin R1 en lista) R2/R3     224.0.0.5       R1 "muere"
+  T=0.000 seg
+    │
+    ├─► HELLO: R1 → 224.0.0.5
+    │   "Hola, soy R1, veo a R2 y R3"
+    │
+    ├─► HELLO: R2 → 224.0.0.5
+    │   "Hola, soy R2, veo a R1 y R3"
+    │
+    ├─► HELLO: R3 → 224.0.0.5
+    │   "Hola, soy R3, veo a R1 y R2"
+    │
+  T=10.000 seg  (Intervalo Hello)
+    │
+    ├─► HELLO: R1 → 224.0.0.5  (periódico)
+    │
+    ├─► HELLO: R2 → 224.0.0.5  (periódico)
+    │
+    ├─► HELLO: R3 → 224.0.0.5  (periódico)
+    │
+  T=20.000 seg
+    │ ✓ Estado: FULL (adyacencias establecidas)
+    │ ✓ Vecinos: R1↔R2, R1↔R3, R2↔R3 conocidas
+    │
 
-[Interfaz offline]
+FASE 2: INTERFAZ SHUTDOWN EN R1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-45.000       No shutdown en R1   -               -               DOWN → INIT
-45.100       HELLO               R1              224.0.0.5       INIT
-45.150       HELLO recibido      R2/R3           (reaccionan)    2-WAY
-46.000       DBD                 R1 (Master)     R2/R3           EXSTART
-46.050       DBD                 R2/R3 (Slave)   R1              EXSTART
-46.100       LSR                 R1              R2/R3           EXCHANGE
-46.150       LSU                 R2/R3           R1              LOADING
-46.200       LSAck               R1              R2/R3           LOADING
-47.000       (fin de intercambios)             -               FULL ✅
+  T=30.000 seg
+    │
+    │ ◄─────────────────────────────────────────────
+    │          Comando: shutdown interfaz Fa0/1
+    │ ◄─────────────────────────────────────────────
+    │
+    ├─► ⚠️  R1: Interfaz Fa0/1 cae (DOWN)
+    │
+    ├─► ⚠️  R1: Elimina adyacencias en esa interfaz
+    │   - R1 ↔ R2 (muere)
+    │   - R1 ↔ R3 (muere)
+    │
+    ├─► ⚠️  Mensaje debug:
+    │   "OSPF: Nbr 192.168.78.130 going DOWN"
+    │   "OSPF: Removing peer 192.168.78.130"
+    │
+  T=35.000 seg  (R2 y R3 esperan)
+    │
+    ├─► ⚠️  R2: Sin HELLO de R1
+    │   Estado de R1 en R2: INIT → DOWN
+    │
+    ├─► ⚠️  R3: Sin HELLO de R1
+    │   Estado de R1 en R3: INIT → DOWN
+    │
+  T=40.000 seg  (Dead timer de R2: 40 seg)
+    │
+    ├─► ⚠️  R2: Timer muere para R1
+    │   Estado de R1: FULL → DOWN
+    │   Mensaje: "Dead Time expired for neighbor 192.168.78.129"
+    │
+  T=50.000 seg  (Dead timer de R3: 40 seg)
+    │
+    ├─► ⚠️  R3: Timer muere para R1
+    │   Estado de R1: FULL → DOWN
+    │
+
+FASE 3: INTERFAZ OFFLINE (30 segundos de espera)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  T=60.000 seg
+    │
+    │ ◄─────────────────────────────────────────────
+    │       Comando: no shutdown interfaz Fa0/1
+    │ ◄─────────────────────────────────────────────
+    │
+
+FASE 4: INTERFAZ SE REACTIVA (DOWN → ESTABLECIMIENTO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  T=60.100 seg
+    │
+    ├─► R1: Interfaz Fa0/1 UP
+    │   Mensaje: "OSPF: Interface Fa0/1 going Up"
+    │   Estado: DOWN
+    │
+    ├─► R1: Enviar primer HELLO
+    │   Estado: DOWN → INIT (esperando vecinos)
+    │
+  T=60.150 seg  ┌────────────────────────────────────┐
+    │           │ HELLO: R1 → 224.0.0.5             │
+    │           │ "¡Hola! Acabo de levantarme"      │
+    │           │ Router ID: 192.168.78.129         │
+    │           │ Área: 1                           │
+    │           │ Vecinos vistos: (VACÍO - inicio)  │
+    │           └────────────────────────────────────┘
+    │
+  T=60.200 seg  ┌────────────────────────────────────┐
+    │           │ HELLO: R2 → 224.0.0.5             │
+    │           │ "Veo a R3 y ¿quién es ese?"      │
+    │           │ Vecinos: R3 ✓                     │
+    │           │ DR: R3, BDR: R2                   │
+    │           └────────────────────────────────────┘
+    │           ↓
+    │           R1 recibe HELLO de R2
+    │           Estado en R1: INIT
+    │           Mensaje: "Received HELLO from neighbor"
+    │
+  T=60.300 seg  Estado R2: INIT → 2-WAY
+    │           (R2 ve a R1 en el HELLO recibido)
+    │
+  T=60.350 seg  ┌────────────────────────────────────┐
+    │           │ HELLO: R3 → 224.0.0.5             │
+    │           │ "Veo a R2 y ¿quién es ese?"      │
+    │           │ Vecinos: R2 ✓                     │
+    │           │ DR: R3, BDR: R2                   │
+    │           └────────────────────────────────────┘
+    │           ↓
+    │           R1 recibe HELLO de R3
+    │           Estado en R1: INIT
+    │
+  T=60.400 seg  ┌────────────────────────────────────┐
+    │           │ HELLO: R1 → 224.0.0.5 (respuesta)│
+    │           │ "Ahora veo a R2 y R3"             │
+    │           │ Vecinos: R2, R3 ✓                │
+    │           │ DR: R3, BDR: R2                   │
+    │           └────────────────────────────────────┘
+    │
+  T=60.450 seg  Estado R2: INIT → 2-WAY ✅
+    │           (Ya bidireccional)
+    │           Estado R3: INIT → 2-WAY ✅
+    │           (Ya bidireccional)
+    │
+    │           Mensaje debug:
+    │           "2 Way Communication Established
+    │            with neighbor 192.168.78.130"
+    │
+  T=60.500 seg  ┌────────────────────────────────────┐
+    │           │ DBD: R2 → R1 (Master iniciar)    │
+    │           │ I=1, M=1, MS=1                    │
+    │           │ Seq=12345, MTU=1500               │
+    │           │ "Quiero intercambiar DB"          │
+    │           └────────────────────────────────────┘
+    │
+  T=60.550 seg  ┌────────────────────────────────────┐
+    │           │ DBD: R1 → R2 (Slave response)    │
+    │           │ I=0, M=0, MS=0                    │
+    │           │ Seq=12346                         │
+    │           │ "Ok, soy esclavo"                │
+    │           └────────────────────────────────────┘
+    │
+  T=60.600 seg  ┌────────────────────────────────────┐
+    │           │ LSR: R1 → R2 (pide LSAs)         │
+    │           │ "¿Me envías tu info de red?"      │
+    │           └────────────────────────────────────┘
+    │
+    │           Estado: EXSTART → EXCHANGE → LOADING
+    │
+  T=60.650 seg  ┌────────────────────────────────────┐
+    │           │ LSU: R2 → R1 (envía LSAs)        │
+    │           │ Router LSA de R2                  │
+    │           │ Router LSA de R3                  │
+    │           │ Network LSA del Switch1          │
+    │           └────────────────────────────────────┘
+    │
+  T=60.700 seg  ┌────────────────────────────────────┐
+    │           │ LSAck: R1 → R2 (confirma)        │
+    │           │ "Recibí tus LSAs"                │
+    │           └────────────────────────────────────┘
+    │
+  T=60.750 seg  Estado R1 con R2: LOADING → FULL ✅
+    │           Estado R1 con R3: LOADING → FULL ✅
+    │
+    │           Mensaje debug:
+    │           "ADJCHG: Process 1, Nbr 192.168.78.130
+    │            from LOADING to FULL, Loading Done"
+    │
+  T=61.000 seg  ┓
+    │           ┃ Intercambio similar con R3
+    │           ┃
+  T=62.000 seg  ┛
+    │
+    ├─► ✅ Estado Final: FULL ADYACENCIAS ESTABLECIDAS
+    │   • R1 ↔ R2 FULL
+    │   • R1 ↔ R3 FULL
+    │   • BD sincronizada
+    │   • Rutas OSPF disponibles
+    │
+
+DURACIÓN TOTAL: ~2 segundos (DOWN → FULL)
 ```
+
+### Tabla Resumida - Transiciones de Estado
+
+| Tiempo (seg) | Evento | R1 Estado | R2 Estado | R3 Estado | Observación |
+|--------------|--------|-----------|-----------|-----------|-----------|
+| 0.000 | FULL antes del cambio | FULL | FULL | FULL | ✅ Normal |
+| 30.000 | Shutdown Fa0/1 en R1 | DOWN | FULL | FULL | ⚠️ Interfaz cae |
+| 35.000 | R2 percibe pérdida | DOWN | INIT→DOWN | - | ⚠️ Sin HELLO de R1 |
+| 45.000 | Dead timer R2 | DOWN | DOWN | DOWN | ⚠️ R1 muere en R2 |
+| 60.100 | No shutdown Fa0/1 | UP | DOWN | DOWN | ✅ Interfaz levanta |
+| 60.200 | Intercambio HELLO | INIT | INIT→2WAY | INIT | ✓ Bidireccional |
+| 60.500 | DBD iniciado | EXSTART | EXSTART | - | ↔ Intercambio DB |
+| 60.700 | LSU intercambiado | LOADING | LOADING | - | ↔ Intercambio LSAs |
+| 60.800 | LSAck recibido | FULL | FULL | FULL | ✅ Sincronizado |
+| 62.000 | Estable | FULL | FULL | FULL | ✅ Equilibrio alcanzado |
 
 ---
 
