@@ -70,7 +70,7 @@ Ruta B: mayor retardo (costo OSPF 350)
 
 | Router | Interfaz | IP | Máscara |
 |--------|----------|----|----|
-| R1 | G0/0 | 192.168.10.1 | 255.255.255.0 |
+| R1 | Fa0/0 | 192.168.10.1 | 255.255.255.0 |
 | R1 | S0/0/0 | 10.0.12.1 | 255.255.255.252 |
 | R1 | S0/0/1 | 10.0.13.1 | 255.255.255.252 |
 | R2 | S0/0/0 | 10.0.12.2 | 255.255.255.252 |
@@ -79,7 +79,7 @@ Ruta B: mayor retardo (costo OSPF 350)
 | R3 | S0/0/1 | 10.0.34.1 | 255.255.255.252 |
 | R4 | S0/0/0 | 10.0.24.2 | 255.255.255.252 |
 | R4 | S0/0/1 | 10.0.34.2 | 255.255.255.252 |
-| R4 | G0/0 | 192.168.40.1 | 255.255.255.0 |
+| R4 | Fa0/0 | 192.168.40.1 | 255.255.255.0 |
 
 **Hosts clientes (VPCS):**
 
@@ -203,7 +203,7 @@ Conecta el VPCS cliente hacia la IP del equipo local que corre `iperf3`.
 
 | De | Interface | A | Interface | Tipo |
 |----|-----------|---|-----------|------|
-| R1 | G0/0 | SW1 | Port 1 | Ethernet |
+| R1 | Fa0/0 | SW1 | Port 1 | Ethernet |
 | SW1 | Port 2 | PC_Gamer | eth0 | Ethernet |
 | SW1 | Port 3 | PC_Streaming | eth0 | Ethernet |
 | SW1 | Port 4 | PC_Descargas | eth0 | Ethernet |
@@ -211,7 +211,7 @@ Conecta el VPCS cliente hacia la IP del equipo local que corre `iperf3`.
 | R1 | S0/0/1 | R3 | S0/0/0 | Serial (DTE/DCE) |
 | R2 | S0/0/1 | R4 | S0/0/0 | Serial (DTE/DCE) |
 | R3 | S0/0/1 | R4 | S0/0/1 | Serial (DTE/DCE) |
-| R4 | G0/0 | SW2 | Port 1 | Ethernet |
+| R4 | Fa0/0 | SW2 | Port 1 | Ethernet |
 | SW2 | Port 2 | Servidor | eth0 | Ethernet |
 
 ## 2.3 Configuración de Direcciones IP
