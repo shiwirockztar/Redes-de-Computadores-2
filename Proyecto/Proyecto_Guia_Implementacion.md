@@ -49,7 +49,7 @@ Ruta B: mayor retardo (costo OSPF 350)
 | R2 | Router intermedio (ruta rápida) | Part of ruta A (costo 50 por enlace) |
 | R3 | Router intermedio (ruta lenta) | Parte de ruta B (costo 200/150) |
 | R4 | Router de borde (servidor) | Salida de la red |
-| Servidor | VPCS (puerto de gestión) | Responde a pings; para pruebas con iperf3 usa un host externo (ver nota) |
+| Servidor | VPCS (puerto de gestión) | Responde a pings; para pruebas con iperf3 usa tu PC Linux local (ver nota) |
 
 ## 1.2 Plan de Direccionamiento IP
 
@@ -148,14 +148,14 @@ La ruta A simula un camino rápido (bajo retardo, alto ancho de banda) mientras 
 1. GNS3 instalado (v2.2+)
 2. IOSv o IOU descargados (imágenes Cisco)
 3. VPCS configuradas para los hosts (una por equipo)
-4. iperf3 instalado en un host externo o contenedor (opcional, ver nota)
+4. iperf3 instalado en tu PC Linux o en un contenedor local (opcional, ver nota)
 
-### Instalación de iperf3 (host externo o contenedor)
+### Instalación de iperf3 (PC Linux local o contenedor)
 
-VPCS no ejecuta `iperf3`. Si necesitas medir throughput con `iperf3`, instala `iperf3` en un host externo/VM o en un contenedor en la máquina que ejecuta GNS3:
+VPCS no ejecuta `iperf3`. Si necesitas medir throughput con `iperf3`, instálalo en tu misma PC Linux donde corre GNS3 o en un contenedor local:
 
 ```bash
-# En el host/VM que actuará como servidor iperf3
+# En tu PC Linux local que actuará como servidor iperf3
 sudo apt-get update
 sudo apt-get install -y iperf3
 
@@ -163,7 +163,7 @@ sudo apt-get install -y iperf3
 iperf3 --version
 ```
 
-Conecta el VPCS cliente hacia la IP del host/VM que corre `iperf3`.
+Conecta el VPCS cliente hacia la IP del equipo local que corre `iperf3`.
 
 ## 2.2 Montaje de la Topología
 
@@ -218,7 +218,7 @@ Conecta el VPCS cliente hacia la IP del host/VM que corre `iperf3`.
 
 ### Configurar VPCS (PCs y Servidor)
 
-En este proyecto usamos exclusivamente VPCS. Cada VPCS se configura mediante telnet al puerto local asignado por GNS3. Ejemplo de pasos (puertos de ejemplo):
+En este proyecto usamos exclusivamente VPCS. Como GNS3 corre en tu PC Linux, cada VPCS se configura mediante telnet a `localhost` usando el puerto local asignado por GNS3. Ejemplo de pasos (puertos de ejemplo):
 
 1. PC_Gamer (puerto telnet: `5000`):
 
@@ -261,7 +261,7 @@ ping 192.168.40.1
 exit
 ```
 
-Puertos de consola/telnet para routers (ejemplos asignados en tu proyecto):
+Puertos de consola/telnet para routers y VPCS en tu PC Linux (ejemplos asignados en tu proyecto):
 
 | Dispositivo | Puerto telnet |
 |-------------|---------------|
@@ -278,8 +278,8 @@ Notas:
 - Sintaxis `ip` en VPCS: `ip <dirección>/<prefijo> <gateway>`.
 - `save` persiste la configuración del VPCS entre reinicios del proyecto.
 - VPCS es limitado: no puede ejecutar servicios complejos como `iperf3`. Para pruebas de throughput puedes:
-  - usar un host/VM externo con `iperf3` y apuntar los VPCS hacia él, o
-  - ejecutar contenedores/VM ligeros en el host si necesitas iperf3 dentro del laboratorio.
+  - usar tu PC Linux local con `iperf3` y apuntar los VPCS hacia ella, o
+  - ejecutar contenedores locales si necesitas `iperf3` dentro del laboratorio.
 
 ### Configurar R1
 
@@ -415,7 +415,7 @@ ping -c 4 192.168.40.10  # Servidor (sin OSPF aún)
 
 **Completado cuando:**
 
-- [ ] Topología montada en GNS3 con 4 routers y 4 VMs
+- [ ] Topología montada en GNS3 con 4 routers y 4 VPCS
 - [ ] Todas las interfaces configuradas con IPs correctas
 - [ ] Interfaces de router en estado "up"
 - [ ] PCs pueden hacer ping dentro de sus LANs
@@ -623,7 +623,7 @@ traceroute to 192.168.40.10 (192.168.40.10), 30 hops max
 
 ## 4.1 Configuración del Servidor iperf3
 
-### En la VM Servidor (192.168.40.10)
+### En tu PC Linux local con iperf3
 
 ```bash
 # Iniciar iperf3 en modo servidor (daemon)
