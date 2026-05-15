@@ -36,14 +36,14 @@ Utilizando enlaces seriales entre routers y redes LAN en los extremos del client
 
 #### Objetivo 2: Configurar el direccionamiento IP y protocolo de enrutamiento dinámico
 
-**¿Qué?** Implementar un esquema de direccionamiento IP jerárquico y configurar un protocolo de enrutamiento dinámico (EIGRP) que influya en la selección de rutas.
+**¿Qué?** Implementar un esquema de direccionamiento IP jerárquico y configurar un protocolo de enrutamiento dinámico (OSPF) que influya en la selección de rutas.
 
 **¿Cómo?** 
 - Asignar direcciones IPv4 con subredes coherentes para las LANs de cliente (192.168.10.0/24), servidor (192.168.40.0/24) y enlaces WAN (subredes /30)
-- Configurar EIGRP en todos los routers, manipulando el bandwidth y delay de los enlaces para que EIGRP prefiera la ruta A
+- Configurar OSPF en todos los routers, manipulando el `cost` de los enlaces para que OSPF prefiera la ruta A
 - Validar la selección de rutas con comandos de diagnóstico
 
-**¿Para qué?** Garantizar que el tráfico tome la ruta de menor latencia automáticamente mediante decisiones de enrutamiento basadas en métricas de distancia.
+**¿Para qué?** Garantizar que el tráfico tome la ruta de menor latencia automáticamente mediante decisiones de enrutamiento basadas en métricas de costo OSPF.
 
 ---
 
@@ -52,11 +52,11 @@ Utilizando enlaces seriales entre routers y redes LAN en los extremos del client
 **¿Qué?** Generar múltiples tipos de tráfico desde los equipos clientes (tráfico de juego, streaming y descargas) que congestion el enlace de forma realista.
 
 **¿Cómo?**
-- Crear tres PCs adicionales en la LAN del cliente, cada una generando un tipo de tráfico específico
-- Simular tráfico UDP sensible a latencia (juego)
-- Simular tráfico TCP continuo (streaming)
-- Simular tráfico TCP pesado (descargas) que congestione la red
-- Usar herramientas de simulación de tráfico como iperf3 (en GNS3) o configuraciones en Packet Tracer
+- Usar máquinas virtuales Ubuntu/Debian en GNS3 para generar tráfico real
+- Simular tráfico UDP sensible a latencia (juego) con iperf3
+- Simular tráfico UDP continuo (streaming) con iperf3
+- Simular tráfico TCP pesado (descargas) con iperf3 que congestione la red
+- Usar iperf3 con múltiples flujos simultáneos para crear congestión realista
 
 **¿Para qué?** Crear un escenario realista donde la red esté congestionada y el tráfico interactivo sufra degradación sin QoS, para luego demostrar la mejora con optimizaciones.
 
@@ -101,23 +101,23 @@ Utilizando enlaces seriales entre routers y redes LAN en los extremos del client
 | 1.2 | Definir el plan de direccionamiento IP | | Tabla de asignación de IPs y subredes |
 | 1.3 | Especificar parámetros de latencia y ancho de banda | | Tabla de características de enlaces |
 
-### Fase 2: Implementación en Packet Tracer
+### Fase 2: Implementación en GNS3
 
 | # | Actividad | Responsable | Entregable |
-|---|-----------|-------------|-----------|
-| 2.1 | Crear la topología de red en Packet Tracer | | Archivo .pkt con topología básica |
+|---|-----------|-------------|----------|
+| 2.1 | Crear la topología de red en GNS3 | | Archivo con topología básica (routers y VMs) |
 | 2.2 | Configurar direccionamiento IP en todos los equipos | | Pruebas ping locales exitosas |
-| 2.3 | Implementar EIGRP y configurar métricas | | Tabla de rutas con ruta A seleccionada |
-| 2.4 | Configurar delay en los enlaces para simular latencia | | Medidas de latencia verificables con traceroute |
+| 2.3 | Implementar OSPF y configurar métricas de cost | | Tabla de rutas con ruta A seleccionada |
+| 2.4 | Configurar cost en interfaces para simular latencia | | Medidas de latencia verificables con traceroute |
 
 ### Fase 3: Simulación de Tráfico
 
 | # | Actividad | Responsable | Entregable |
 |---|-----------|-------------|-----------|
-| 3.1 | Crear equipos adicionales para diferentes tipos de tráfico | | 3 PCs con roles definidos (gamer, streaming, descargas) |
-| 3.2 | Configurar generación de tráfico UDP (juego) | | Tráfico UDP fluyendo desde PC Gamer |
-| 3.3 | Configurar generación de tráfico TCP (streaming y descargas) | | Tráfico TCP simultáneo generando congestión |
-| 3.4 | Medir latencia sin QoS | | Tabla de mediciones de RTT y jitter |
+| 3.1 | Crear máquinas virtuales Linux para diferentes tipos de tráfico | | 3 VMs con iperf3 instalado (gamer, streaming, descargas) |
+| 3.2 | Configurar generación de tráfico UDP (juego) con iperf3 | | Tráfico UDP fluyendo desde VM Gamer |
+| 3.3 | Configurar generación de tráfico TCP (streaming y descargas) con iperf3 | | Tráfico TCP simultáneo generando congestión real |
+| 3.4 | Medir latencia sin QoS | | Tabla de mediciones de RTT y jitter desde iperf3 |
 
 ### Fase 4: Configuración de QoS
 
@@ -153,8 +153,8 @@ Utilizando enlaces seriales entre routers y redes LAN en los extremos del client
 | Semana | Fases | Hitos |
 |--------|-------|-------|
 | 1-2 | Planificación y Diseño (Fase 1) | Topología y plan de direccionamiento aprobados |
-| 3-4 | Implementación en Packet Tracer (Fase 2) | Red funcional con EIGRP |
-| 5-6 | Simulación de Tráfico (Fase 3) | Tráfico diferenciado y mediciones iniciales |
+| 3-4 | Implementación en GNS3 (Fase 2) | Red funcional con OSPF y VMs Linux |
+| 5-6 | Simulación de Tráfico (Fase 3) | Tráfico real con iperf3 y mediciones iniciales |
 | 7-8 | Configuración de QoS (Fase 4) | Políticas implementadas y validadas |
 | 9-10 | Validación (Fase 5) | Comparativas antes/después completadas |
 | 11-12 | Documentación Final (Fase 6) | Entrega final del proyecto |
@@ -164,6 +164,7 @@ Utilizando enlaces seriales entre routers y redes LAN en los extremos del client
 ## Notas Importantes
 
 - Este proyecto es un trabajo académico enfocado en aprendizaje de conceptos de redes y QoS
-- Se utilizará Cisco Packet Tracer como herramienta principal, con posibilidad de validación en GNS3
+- Se utilizará **GNS3 como herramienta principal**, con máquinas virtuales Linux reales para generar tráfico
+- Se utilizará **OSPF** como protocolo de enrutamiento dinámico (no EIGRP)
 - Se espera documentación clara y demostraciones reproducibles
 - La comparación de resultados debe ser cuantificable (latencia, jitter, pérdida de paquetes)
