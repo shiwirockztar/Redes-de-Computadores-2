@@ -251,10 +251,10 @@ ping 192.168.10.1
 exit
 ```
 
-4. Servidor (VPCS de gestión): usa el puerto que GNS3 asigne; sustituye `<PUERTO_SERVIDOR>` por el valor correcto:
+4. Servidor (VPCS de gestión) (puerto telnet: `5010`):
 
 ```bash
-telnet localhost <PUERTO_SERVIDOR>
+telnet localhost 5010
 ip 192.168.40.10/24 192.168.40.1
 save
 ping 192.168.40.1
@@ -271,6 +271,7 @@ Puertos de consola/telnet para routers y VPCS en tu PC Linux (ejemplos asignados
 | R1 (consola) | 5006 |
 | R2 (consola) | 5007 |
 | R3 (consola) | 5008 |
+| Servidor | 5010 |
 | R4 (consola) | 5009 |
 
 Notas:
