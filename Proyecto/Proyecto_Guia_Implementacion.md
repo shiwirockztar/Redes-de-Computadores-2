@@ -71,14 +71,14 @@ Ruta B: mayor retardo (costo OSPF 350)
 | Router | Interfaz | IP | Máscara |
 |--------|----------|----|----|
 | R1 | Fa0/0 | 192.168.10.1 | 255.255.255.0 |
-| R1 | S0/0/0 | 10.0.12.1 | 255.255.255.252 |
-| R1 | S0/0/1 | 10.0.13.1 | 255.255.255.252 |
-| R2 | S0/0/0 | 10.0.12.2 | 255.255.255.252 |
-| R2 | S0/0/1 | 10.0.24.1 | 255.255.255.252 |
-| R3 | S0/0/0 | 10.0.13.2 | 255.255.255.252 |
-| R3 | S0/0/1 | 10.0.34.1 | 255.255.255.252 |
-| R4 | S0/0/0 | 10.0.24.2 | 255.255.255.252 |
-| R4 | S0/0/1 | 10.0.34.2 | 255.255.255.252 |
+| R1 | Serial0/0 | 10.0.12.1 | 255.255.255.252 |
+| R1 | Serial0/1 | 10.0.13.1 | 255.255.255.252 |
+| R2 | Serial0/0 | 10.0.12.2 | 255.255.255.252 |
+| R2 | Serial0/1 | 10.0.24.1 | 255.255.255.252 |
+| R3 | Serial0/0 | 10.0.13.2 | 255.255.255.252 |
+| R3 | Serial0/1 | 10.0.34.1 | 255.255.255.252 |
+| R4 | Serial0/0 | 10.0.24.2 | 255.255.255.252 |
+| R4 | Serial0/1 | 10.0.34.2 | 255.255.255.252 |
 | R4 | Fa0/0 | 192.168.40.1 | 255.255.255.0 |
 
 **Hosts clientes (VPCS):**
@@ -207,10 +207,10 @@ Conecta el VPCS cliente hacia la IP del equipo local que corre `iperf3`.
 | SW1 | Port 2 | PC_Gamer | eth0 | Ethernet |
 | SW1 | Port 3 | PC_Streaming | eth0 | Ethernet |
 | SW1 | Port 4 | PC_Descargas | eth0 | Ethernet |
-| R1 | S0/0/0 | R2 | S0/0/0 | Serial (DTE/DCE) |
-| R1 | S0/0/1 | R3 | S0/0/0 | Serial (DTE/DCE) |
-| R2 | S0/0/1 | R4 | S0/0/0 | Serial (DTE/DCE) |
-| R3 | S0/0/1 | R4 | S0/0/1 | Serial (DTE/DCE) |
+| R1 | Serial0/0 | R2 | Serial0/0 | Serial (DTE/DCE) |
+| R1 | Serial0/1 | R3 | Serial0/0 | Serial (DTE/DCE) |
+| R2 | Serial0/1 | R4 | Serial0/0 | Serial (DTE/DCE) |
+| R3 | Serial0/1 | R4 | Serial0/1 | Serial (DTE/DCE) |
 | R4 | Fa0/0 | SW2 | Port 1 | Ethernet |
 | SW2 | Port 2 | Servidor | eth0 | Ethernet |
 
@@ -473,11 +473,11 @@ R1# ping 10.0.12.2  (debe responder)
 configure terminal
 
 ! Definir delays para simular latencia
-interface s0/0/0
+interface Serial0/0
  delay 5000       ! 5ms en ruta A
  ip ospf cost 50  ! Costo bajo para ruta rápida
 
-interface s0/0/1
+interface Serial0/1
  delay 20000      ! 20ms en ruta B
  ip ospf cost 200 ! Costo alto para ruta lenta
 
@@ -486,7 +486,7 @@ router ospf 1
  network 192.168.10.0 0.0.0.255 area 0
  network 10.0.12.0 0.0.0.3 area 0
  network 10.0.13.0 0.0.0.3 area 0
- passive-interface g0/0  ! No envía OSPF por LAN cliente
+ passive-interface FastEthernet0/0  ! No envía OSPF por LAN cliente
 
 end
 write memory
@@ -497,11 +497,11 @@ write memory
 ```ios
 configure terminal
 
-interface s0/0/0
+interface Serial0/0
  delay 5000      ! Ruta A
  ip ospf cost 50
 
-interface s0/0/1
+interface Serial0/1
  delay 5000      ! Ruta A
  ip ospf cost 50
 
@@ -518,11 +518,11 @@ write memory
 ```ios
 configure terminal
 
-interface s0/0/0
+interface Serial0/0
  delay 20000     ! Ruta B
  ip ospf cost 200
 
-interface s0/0/1
+interface Serial0/1
  delay 15000     ! Ruta B
  ip ospf cost 150
 
@@ -539,11 +539,11 @@ write memory
 ```ios
 configure terminal
 
-interface s0/0/0
+interface Serial0/0
  delay 5000      ! Ruta A
  ip ospf cost 50
 
-interface s0/0/1
+interface Serial0/1
  delay 15000     ! Ruta B
  ip ospf cost 150
 
@@ -551,7 +551,7 @@ router ospf 1
  network 10.0.24.0 0.0.0.3 area 0
  network 10.0.34.0 0.0.0.3 area 0
  network 192.168.40.0 0.0.0.255 area 0
- passive-interface g0/0  ! No envía OSPF por LAN servidor
+ passive-interface FastEthernet0/0  ! No envía OSPF por LAN servidor
 
 end
 write memory
@@ -590,7 +590,7 @@ O    192.168.40.0/24 [110/150] via 10.0.12.2, 00:05:32, Serial0/0/0
 ### Verificar cost en interfaces
 
 ```ios
-show ip ospf interface s0/0/0
+show ip ospf interface Serial0/0
 ```
 
 **Esperado**:
@@ -842,7 +842,7 @@ write memory
 ```ios
 configure terminal
 
-interface g0/0
+interface FastEthernet0/0
  description LAN CLIENTE
  service-policy input PM-MARKING
 
@@ -890,7 +890,7 @@ write memory
 ```ios
 configure terminal
 
-interface s0/0/0
+interface Serial0/0
  description ENLACE A R2
  service-policy output PM-PARENT-SHAPE
 
@@ -936,7 +936,7 @@ Policy Map PM-MARKING
 ### Ver aplicación en interfaces
 
 ```ios
-show policy-map interface s0/0/0
+show policy-map interface Serial0/0
 ```
 
 **Esperado:**
@@ -962,8 +962,8 @@ Service-policy output: PM-PARENT-SHAPE
 
 - [ ] ACLs creadas para identificar los tres tipos de tráfico
 - [ ] Class-maps asociadas a las ACLs
-- [ ] Policy-map de marcado aplicada en interfaz G0/0 (entrada)
-- [ ] Policy-map de colas aplicada en interfaz S0/0/0 (salida)
+- [ ] Policy-map de marcado aplicada en interfaz FastEthernet0/0 (entrada)
+- [ ] Policy-map de colas aplicada en interfaz Serial0/0 (salida)
 - [ ] Shaping configurado a 8Mbps
 - [ ] `show policy-map interface` muestra las políticas activas
 
