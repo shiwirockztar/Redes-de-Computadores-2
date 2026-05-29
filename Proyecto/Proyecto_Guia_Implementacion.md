@@ -307,22 +307,25 @@ configure terminal
 hostname R1
 no ip domain-lookup
 
-interface g0/0
+interface FastEthernet0/0
  description LAN CLIENTE
  ip address 192.168.10.1 255.255.255.0
  no shutdown
+ exit
 
-interface s0/0/0
+interface Serial0/0
  description ENLACE A R2
  ip address 10.0.12.1 255.255.255.252
  clock rate 64000
  no shutdown
+ exit
 
-interface s0/0/1
+interface Serial0/1
  description ENLACE A R3
  ip address 10.0.13.1 255.255.255.252
  clock rate 64000
  no shutdown
+ exit
 
 end
 write memory
