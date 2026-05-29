@@ -340,16 +340,18 @@ configure terminal
 hostname R2
 no ip domain-lookup
 
-interface s0/0/0
+interface Serial0/0
  description ENLACE A R1
  ip address 10.0.12.2 255.255.255.252
  no shutdown
+ exit
 
-interface s0/0/1
+interface Serial0/1
  description ENLACE A R4
  ip address 10.0.24.1 255.255.255.252
  clock rate 64000
  no shutdown
+ exit
 
 end
 write memory
@@ -364,16 +366,18 @@ configure terminal
 hostname R3
 no ip domain-lookup
 
-interface s0/0/0
+interface Serial0/0
  description ENLACE A R1
  ip address 10.0.13.2 255.255.255.252
  no shutdown
+ exit
 
-interface s0/0/1
+interface Serial0/1
  description ENLACE A R4
  ip address 10.0.34.1 255.255.255.252
  clock rate 64000
  no shutdown
+ exit
 
 end
 write memory
@@ -388,20 +392,23 @@ configure terminal
 hostname R4
 no ip domain-lookup
 
-interface s0/0/0
+interface Serial0/0
  description ENLACE A R2
  ip address 10.0.24.2 255.255.255.252
  no shutdown
+ exit
 
-interface s0/0/1
+interface Serial0/1
  description ENLACE A R3
  ip address 10.0.34.2 255.255.255.252
  no shutdown
+ exit
 
-interface g0/0
+interface FastEthernet0/0
  description LAN SERVIDOR
  ip address 192.168.40.1 255.255.255.0
  no shutdown
+ exit
 
 end
 write memory
