@@ -261,6 +261,22 @@ ping 192.168.40.1
 exit
 ```
 
+5. Verificacion de asignacion IP:
+
+```bash
+PC-Gamer> show ip
+
+NAME        : PC-Gamer[1]
+IP/MASK     : 192.168.10.10/24
+GATEWAY     : 192.168.10.1
+DNS         : 
+MAC         : 00:50:79:66:68:00
+LPORT       : 10012
+RHOST:PORT  : 127.0.0.1:10013
+MTU         : 1500
+
+```
+
 Puertos de consola/telnet para routers y VPCS en tu PC Linux (ejemplos asignados en tu proyecto):
 
 | Dispositivo | Puerto telnet |
