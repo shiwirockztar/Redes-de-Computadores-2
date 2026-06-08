@@ -325,10 +325,28 @@ wr
 
 ```bash
 # LAN A — enlace #1
-ip 172.16.0.10 172.16.0.1 24
+telnet localhost 5000
+```
 
+```bash
+# En el prompt de VPCS
+ip 172.16.0.10/24 172.16.0.1
+save
+ping 172.16.0.1
+exit
+```
+
+```bash
 # LAN B — enlace #8
-ip 10.10.10.10 10.10.10.1 24
+telnet localhost 5001
+```
+
+```bash
+# En el prompt de VPCS
+ip 10.10.10.10/24 10.10.10.1
+save
+ping 10.10.10.1
+exit
 ```
 
 ---
