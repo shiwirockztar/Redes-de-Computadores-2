@@ -338,7 +338,7 @@ exit
 
 ```bash
 # LAN B — enlace #8
-telnet localhost 5001
+telnet localhost 5002
 ```
 
 ```bash
