@@ -148,11 +148,11 @@ La ruta A simula un camino rápido (bajo retardo, alto ancho de banda) mientras 
 1. GNS3 instalado (v2.2+)
 2. IOSv o IOU descargados (imágenes Cisco)
 3. VPCS configuradas para los hosts (una por equipo)
-4. iperf3 instalado en tu PC Linux o en un contenedor local (opcional, ver nota)
+4. iperf3 instalado en tu PC Windows/Linux (obligatorio para Fase 4; ver nota)
 
-### Instalación de iperf3 (PC Linux local o contenedor)
+### Instalación de iperf3 (PC Windows o Linux — no en VPCS)
 
-VPCS no ejecuta `iperf3`. Si necesitas medir throughput con `iperf3`, instálalo en tu misma PC Linux donde corre GNS3 o en un contenedor local:
+**VPCS no ejecuta `iperf3`.** Los comandos `iperf3` se ejecutan en tu PC host conectado al lab con nodos **Cloud** (ver sección 4.0). En Linux:
 
 ```bash
 # En tu PC Linux local que actuará como servidor iperf3
@@ -163,7 +163,7 @@ sudo apt-get install -y iperf3
 iperf3 --version
 ```
 
-Conecta el VPCS cliente hacia la IP del equipo local que corre `iperf3`.
+En Windows: `winget install iperf3`. Conecta el PC host al lab con nodos Cloud (Fase 4, sección 4.0).
 
 ## 2.2 Montaje de la Topología
 
@@ -664,7 +664,96 @@ traceroute to 192.168.40.10 (192.168.40.10), 30 hops max
 **Duración**: Semanas 5-6  
 **Objetivo**: Generar tráfico real con iperf3 y medir métricas baseline (sin QoS).
 
-> **Linux y Windows:** Cada sección incluye comandos para ambos sistemas. Si trabajas desde un PC Windows (host o clientes GNS3), usa los bloques marcados como *Windows*.
+> **Linux y Windows:** Cada sección incluye comandos para ambos sistemas. Si trabajas desde un PC Windows, usa los bloques marcados como *Windows*.
+
+## ⚠️ Importante: VPCS no ejecuta iperf3
+
+Los nodos **PC-Gamer**, **PC-Streaming**, **PC-Descargas** y **Servidor** en este proyecto son **VPCS** (Virtual PC Simulator). VPCS solo admite comandos básicos:
+
+```text
+PC-Gamer> ?
+```
+
+Comandos disponibles en VPCS: `ping`, `trace`, `ip`, `save`, `show`, `set`, `echo`, `clear`, `help`, etc.
+
+**No existe `iperf3` en VPCS.** Si escribes:
+
+```text
+PC-Gamer> iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
+Bad command: "iperf3 ...". Use ? for help.
+```
+
+Eso es el comportamiento esperado. Para Fase 4 debes ejecutar `iperf3` en tu **PC Windows** (o Linux) conectado al laboratorio, no en la consola de VPCS.
+
+| Tarea | Dónde ejecutarla |
+|-------|------------------|
+| `ping`, `trace`, verificar IP | Consola VPCS (`PC-Gamer>`) ✓ |
+| `iperf3` cliente o servidor | PC Windows/Linux con Cloud en GNS3 ✓ |
+| `iperf3` en consola VPCS | ✗ No soportado |
+
+## 4.0 Conectar tu PC Windows al laboratorio GNS3
+
+Para que `iperf3` atraviese routers, switches y OSPF, enlaza tu PC al lab con nodos **Cloud**.
+
+### Paso 1: Cloud en lado servidor (iperf3 servidor)
+
+1. En GNS3, arrastra un nodo **Cloud** al proyecto.
+2. Renómbralo `Cloud_Servidor`.
+3. Conéctalo: `Cloud_Servidor eth0` → `SW2` (mismo puerto donde está el VPCS Servidor).
+4. Clic derecho en `Cloud_Servidor` → **Configure**.
+5. En **Ethernet interfaces**, elige un adaptador de tu PC, por ejemplo:
+   - `Npcap Loopback Adapter`, o
+   - `Loopback Pseudo-Interface`, o
+   - una tarjeta Ethernet física dedicada al lab.
+6. Aplica y arranca el proyecto.
+
+En **Windows** (Panel de control → Redes → Propiedades del adaptador elegido), asigna IP estática:
+
+| Campo | Valor |
+|-------|-------|
+| IP | `192.168.40.10` |
+| Máscara | `255.255.255.0` |
+| Puerta de enlace | `192.168.40.1` |
+
+Verifica desde CMD (no desde VPCS):
+
+```cmd
+ping 192.168.40.1
+ping 192.168.10.10
+```
+
+*Si el VPCS Servidor también usa 192.168.40.10, apágalo o cámbiale la IP (ej. `192.168.40.11`) para evitar conflicto.*
+
+### Paso 2: Cloud en lado cliente (iperf3 cliente)
+
+1. Arrastra otro **Cloud**, renómbralo `Cloud_Cliente`.
+2. Conéctalo: `Cloud_Cliente eth0` → `SW1` (LAN cliente).
+3. Configura el mismo tipo de adaptador (puede ser otro adaptador loopback distinto).
+4. Asigna en Windows:
+
+| Campo | Valor |
+|-------|-------|
+| IP | `192.168.10.10` |
+| Máscara | `255.255.255.0` |
+| Puerta de enlace | `192.168.10.1` |
+
+Verifica:
+
+```cmd
+ping 192.168.10.1
+ping 192.168.40.10
+```
+
+*Si PC-Gamer VPCS ya usa 192.168.10.10, cámbiale la IP en VPCS (ej. `192.168.10.11`) o desconéctalo temporalmente.*
+
+### Paso 3: Flujo de trabajo Fase 4
+
+```text
+[PC Windows - Cloud_Cliente 192.168.10.10]  →  R1 → … →  R4  →  [PC Windows - Cloud_Servidor 192.168.40.10]
+         iperf3 -c … (cliente)                                              iperf3 -s … (servidor)
+
+[VPCS PC-Gamer]  →  solo ping / trace para comprobar conectividad
+```
 
 ## 4.1 Configuración del Servidor iperf3
 
@@ -713,7 +802,7 @@ iperf3 -c 127.0.0.1
 
 Debes ver throughput en ambas ventanas. Cierra con `Ctrl+C` en la ventana del servidor.
 
-**Servidor para el laboratorio** (un proceso por puerto; abre 3 ventanas):
+**Servidor para el laboratorio** (ejecutar en el PC conectado por `Cloud_Servidor`, IP `192.168.40.10`; un proceso por puerto — abre 3 ventanas):
 
 Ventana 1 — gaming (UDP 5001):
 
@@ -747,15 +836,17 @@ Debes ver líneas con `LISTENING` en los puertos 5001, 5002 y 5003.
 
 ### Prueba 1: Línea Base - Tráfico Individual
 
-**Gaming (UDP) - desde PC_Gamer:**
+> Ejecuta estos comandos en **CMD/PowerShell de Windows** (adaptador `Cloud_Cliente`), **no** en la consola VPCS `PC-Gamer>`.
 
-Linux (GNS3 / bash):
+**Gaming (UDP) — simula PC_Gamer (puerto 5001):**
+
+Linux (PC host conectado al lab):
 
 ```bash
 iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
 ```
 
-Windows (CMD o PowerShell):
+Windows (CMD o PowerShell en `Cloud_Cliente`):
 
 ```cmd
 iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
@@ -763,9 +854,17 @@ iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
 
 **Captura:**
 - Copiar salida completa (throughput, jitter, pérdida)
-- Registrar RTT con ping simultáneo
+- Registrar RTT con ping simultáneo (desde VPCS o desde Windows):
 
-**Streaming (UDP) - desde PC_Streaming:**
+```text
+PC-Gamer> ping 192.168.40.10 -c 20
+```
+
+```cmd
+ping -n 20 192.168.40.10
+```
+
+**Streaming (UDP) — simula PC_Streaming (puerto 5002):**
 
 Linux:
 
@@ -779,7 +878,7 @@ Windows:
 iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 1400 -t 30
 ```
 
-**Descargas (TCP) - desde PC_Descargas:**
+**Descargas (TCP) — simula PC_Descargas (puerto 5003):**
 
 Linux:
 
@@ -797,49 +896,32 @@ iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 30
 
 Ejecutar los tres tipos de tráfico en paralelo para congestionar la red.
 
-**Linux (GNS3 / bash):**
-
-Terminal en PC_Gamer:
+**Linux (PC host conectado al lab):**
 
 ```bash
 iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 60 &
-```
-
-Terminal en PC_Streaming:
-
-```bash
 iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 1400 -t 60 &
-```
-
-Terminal en PC_Descargas:
-
-```bash
 iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 60 &
-```
-
-Esperar a que terminen:
-
-```bash
 wait
 ```
 
-**Windows (CMD):**
+**Windows (CMD en `Cloud_Cliente`):**
 
 Abre tres ventanas de CMD y ejecuta una en cada una:
 
-Ventana 1 — PC_Gamer:
+Ventana 1 — tráfico gaming:
 
 ```cmd
 iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 60
 ```
 
-Ventana 2 — PC_Streaming:
+Ventana 2 — tráfico streaming:
 
 ```cmd
 iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 1400 -t 60
 ```
 
-Ventana 3 — PC_Descargas:
+Ventana 3 — tráfico descargas:
 
 ```cmd
 iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 60
@@ -861,20 +943,24 @@ Espera ~60 segundos a que terminen los tres procesos.
 
 **Ejecutar durante el tráfico de congestión:**
 
-Linux (GNS3 / bash):
+Linux (PC host):
 
 ```bash
-# En PC_Gamer (mientras corre iperf3)
+# Mientras corre iperf3
 ping -c 100 192.168.40.10 > ping_sin_qos.txt
-
-# Analizar resultados
 grep min ping_sin_qos.txt
 ```
 
-Windows (CMD):
+Desde VPCS (opcional, mientras corre iperf3):
+
+```text
+PC-Gamer> ping 192.168.40.10 -c 100
+```
+
+Windows (CMD en `Cloud_Cliente`):
 
 ```cmd
-REM En PC_Gamer (mientras corre iperf3)
+REM Mientras corre iperf3
 ping -n 100 192.168.40.10 > ping_sin_qos.txt
 
 REM Analizar resultados
