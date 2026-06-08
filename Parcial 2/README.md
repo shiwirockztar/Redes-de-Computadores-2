@@ -57,7 +57,7 @@ Guía para montar, configurar y verificar la topología en GNS3.
 
 | # | Origen | If. origen | Destino | If. destino | Tipo | Subred | IP origen | IP destino |
 |---|--------|------------|---------|-------------|------|--------|-----------|------------|
-| 1 | LAN A | eth0 | R7 | Fa0/0 | Ethernet | `172.16.0.0/24` | `172.16.0.1` | `172.16.0.2` |
+| 1 | LAN A (VPCS) | eth0 | R7 | Fa0/0 | Ethernet | `172.16.0.0/24` | `172.16.0.1` (host) | `172.16.0.2` (R7) |
 | 2 | R7 | Se0/0 | R6 | Se0/0 | **Serial** | `192.168.78.0/29` | `192.168.78.1` | `192.168.78.2` |
 | 3 | R6 | Fa0/1 | R1 | Fa0/0 | Ethernet | `192.168.78.8/29` | `192.168.78.9` | `192.168.78.10` |
 | 4 | R1 | Se0/0 | R4 | Se0/0 | **Serial** | `192.168.78.16/29` | `192.168.78.17` | `192.168.78.18` |
@@ -138,7 +138,7 @@ Máscara fija: **`255.255.255.248` (`/29`)** → 6 hosts útiles por subred (cum
 
 | Red | Gateway | Router | Interfaz | IP router |
 |-----|---------|--------|----------|-----------|
-| `172.16.0.0/24` | `172.16.0.1` | R7 | Fa0/0 | `172.16.0.2` |
+| `172.16.0.0/24` | `172.16.0.2` (R7) | VPCS LAN A | eth0 | `172.16.0.1` |
 | `10.10.10.0/24` | `10.10.10.1` | R3 | Fa0/1 | `10.10.10.1` |
 | Internet | DHCP | R3 | Fa1/0 | asignada por Cloud |
 
@@ -199,6 +199,7 @@ conf t
 interface se0/0
  ip address 192.168.78.2 255.255.255.248
  no shutdown
+ isis network point-to-point
 interface fa0/1
  ip address 192.168.78.9 255.255.255.248
  no shutdown
@@ -224,6 +225,7 @@ interface se0/0
  ip address 192.168.78.1 255.255.255.248
  clock rate 64000
  no shutdown
+ isis network point-to-point
 router isis CORE
  net 49.0001.0000.0000.0007.00
  is-type level-2-only
@@ -325,29 +327,14 @@ wr
 
 ```bash
 # LAN A — enlace #1
-telnet localhost 5000
-```
+# El host DEBE ser 172.16.0.1 (gateway = R7 en 172.16.0.2)
+ip 172.16.0.1 172.16.0.2 24
 
-```bash
-# En el prompt de VPCS
-ip 172.16.0.10/24 172.16.0.1
-save
-ping 172.16.0.1
-exit
-```
-
-```bash
 # LAN B — enlace #8
-telnet localhost 5002
+ip 10.10.10.10 10.10.10.1 24
 ```
 
-```bash
-# En el prompt de VPCS
-ip 10.10.10.10/24 10.10.10.1
-save
-ping 10.10.10.1
-exit
-```
+> **Importante LAN A:** Si el VPCS usa otra IP (ej. `.10`) o gateway incorrecto, `ping 172.16.0.1` desde R7 fallará con `.....` (timeout) porque nadie responde en esa dirección.
 
 ---
 
@@ -362,7 +349,7 @@ exit
 5. Iniciar todos los nodos.
 6. Aplicar configs IOS (sección 5) en orden: **R7 → R6 → R1 → R4 → R5 → R2 → R3**.
 7. Verificar seriales `up/up`: `show ip interface brief`.
-8. Configurar VPCS (LAN A y LAN B).
+8. Configurar VPCS — **LAN A obligatorio:** `ip 172.16.0.1 172.16.0.2 24`.
 9. Configurar Cloud/NAT para DHCP en R3 Fa1/0 (enlace #9).
 
 ---
@@ -382,17 +369,36 @@ show ip ospf neighbor
 
 ### 7.2 Pruebas de conectividad
 
-| Desde | Hacia | Enlace # | Comando |
-|-------|-------|----------|---------|
-| R7 | R6 | 2 | `ping 192.168.78.2` |
-| R6 | R1 | 3 | `ping 192.168.78.10` |
-| R1 | R4 | 4 | `ping 192.168.78.18` |
-| R1 | LAN A | 3→2→1 vía R6/R7 | `ping 172.16.0.1` |
-| R2 | R3 | 7 | `ping 192.168.78.42` |
-| R7 | LAN A | 1 | `ping 172.16.0.1` |
-| R3 | LAN B | 8 | `ping 10.10.10.10` |
-| LAN A (VPCS) | LAN B | 1→8 | `ping 10.10.10.10` |
-| LAN B (VPCS) | LAN A | 8→1 | `ping 172.16.0.10` |
+**Antes de probar LAN A**, confirmar en R6 y R7:
+
+```ios
+show isis neighbors          ! debe verse vecino en Se0/0
+show ip route 172.16.0.0       ! R6 debe tener ruta IS-IS (i) hacia 172.16.0.0/24
+show arp                       ! R7 debe ver MAC de 172.16.0.1 en Fa0/0
+```
+
+| Desde | Hacia | Enlace # | Comando | Resultado esperado |
+|-------|-------|----------|---------|-------------------|
+| R7 | R6 | 2 | `ping 192.168.78.2` | `!!!!!` |
+| R6 | R1 | 3 | `ping 192.168.78.10` | `!!!!!` |
+| R1 | R4 | 4 | `ping 192.168.78.18` | `!!!!!` |
+| R7 | VPCS LAN A | 1 | `ping 172.16.0.1` | `!!!!!` |
+| R1 | VPCS LAN A | 3→2→1 | `ping 172.16.0.1` | `!!!!!` |
+| R2 | R3 | 7 | `ping 192.168.78.42` | `!!!!!` |
+| R3 | LAN B | 8 | `ping 10.10.10.10` | `!!!!!` |
+| LAN A (VPCS) | LAN B | 1→8 | `ping 10.10.10.10` | `!!!!!` |
+| LAN B (VPCS) | LAN A | 8→1 | `ping 172.16.0.1` | `!!!!!` |
+
+### 7.4 Troubleshooting — ping a `172.16.0.1`
+
+| Síntoma | Causa probable | Solución |
+|---------|----------------|----------|
+| R7: `.....` (timeout) | VPCS sin IP `172.16.0.1` o nodo apagado | En VPCS: `ip 172.16.0.1 172.16.0.2 24`. Verificar cable eth0 ↔ R7 Fa0/0 |
+| R7: `.....` | ARP no resuelve | En R7: `show arp` — si no aparece `.1`, revisar VPCS |
+| R1: `UUUUU` (unreachable) | R6 no tiene ruta a `172.16.0.0/24` | En R6: `show ip route 172.16.0.0` — si no hay ruta IS-IS, revisar vecindad con R7 |
+| R1: `UUUUU` | IS-IS no levanta en serial R6–R7 | Aplicar `isis network point-to-point` en R6 y R7 Se0/0. Ver `show isis neighbors` |
+| R1: `.....` | R6 sí enruta pero VPCS no responde | Corregir IP del VPCS (ver arriba) |
+| R1: `UUUUU` | Enlace R6–R1 caído | `show ip interface brief` en R1 Fa0/0 y R6 Fa0/1 |
 
 ### 7.3 Checklist de cumplimiento
 
@@ -423,6 +429,8 @@ Auditoría cruzada entre todas las secciones del README:
 | Enlaces Serial 2.2 ↔ DCE 2.2 ↔ `clock rate` en IOS | ✅ R7 Se0/0, R1 Se0/0, R2 Se0/0 |
 | Enlaces Serial ↔ Medio en 3.1 | ✅ Filas 2, 4 y 7 |
 | R6–R1 es Ethernet en todas las secciones | ✅ Enlace #3 — Fa0/1 ↔ Fa0/0 |
+| VPCS LAN A responde en `172.16.0.1` | ✅ `ip 172.16.0.1 172.16.0.2 24` |
+| IS-IS serial R6–R7 con `point-to-point` | ✅ R6 y R7 Se0/0 |
 | Círculo IS-IS ↔ routers con `router isis` | ✅ R4, R5, R6, R7 — R1 excluido |
 | Círculo OSPF ↔ routers con `router ospf` | ✅ R2, R3, R5 |
 | LAN A en R7 Fa0/0 | ✅ `172.16.0.2` — enlace #1 |
