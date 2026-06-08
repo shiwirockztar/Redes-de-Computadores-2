@@ -14,8 +14,8 @@ Guía para montar, configurar y verificar la topología en GNS3.
 | LAN B | `10.10.10.0/24` (gateway `10.10.10.1`) |
 | Sistema autónomo | **AS 65078** |
 | Equipo | Cisco **3745** + 2 puertos Fast Ethernet adicionales + **2 tarjetas WIC-2T** |
-| Enlaces punteados (Serial) | **R6–R1**, **R1–R4**, **R2–R3** |
-| Enlaces sólidos (Ethernet) | R7–R6, R4–R5, R5–R2, LAN A, LAN B, Cloud |
+| Enlaces punteados (Serial) | **R6–R7**, **R1–R4**, **R2–R3** |
+| Enlaces sólidos (Ethernet) | R6–R1, R4–R5, R5–R2, LAN A, LAN B, Cloud |
 | IGP 1 | **IS-IS** (círculo protocolo 1: R1 y R4) |
 | IGP 2 | Libre elección → **OSPF** (círculo protocolo 2: R2 y R3) |
 | Restricción crítica | **R1 NO ejecuta protocolo de enrutamiento**, pero debe garantizar conectividad hacia LAN A |
@@ -44,11 +44,12 @@ Guía para montar, configurar y verificar la topología en GNS3.
 
 | Router | Serial activo | Conecta a |
 |--------|---------------|-----------|
-| R1 | `Se0/0`, `Se0/1` | R6, R4 |
+| R1 | `Se0/0` | R4 |
 | R2 | `Se0/0` | R3 |
 | R3 | `Se0/0` | R2 |
 | R4 | `Se0/0` | R1 |
-| R6 | `Se0/0` | R1 |
+| R6 | `Se0/0` | R7 |
+| R7 | `Se0/0` | R6 |
 
 ### 2.2 Tabla maestra de conexiones físicas
 
@@ -57,9 +58,9 @@ Guía para montar, configurar y verificar la topología en GNS3.
 | # | Origen | If. origen | Destino | If. destino | Tipo | Subred | IP origen | IP destino |
 |---|--------|------------|---------|-------------|------|--------|-----------|------------|
 | 1 | LAN A | eth0 | R7 | Fa0/0 | Ethernet | `172.16.0.0/24` | `172.16.0.1` | `172.16.0.2` |
-| 2 | R7 | Fa0/1 | R6 | Fa0/0 | Ethernet | `192.168.78.0/29` | `192.168.78.1` | `192.168.78.2` |
-| 3 | R6 | Se0/0 | R1 | Se0/0 | **Serial** | `192.168.78.8/29` | `192.168.78.9` | `192.168.78.10` |
-| 4 | R1 | Se0/1 | R4 | Se0/0 | **Serial** | `192.168.78.16/29` | `192.168.78.17` | `192.168.78.18` |
+| 2 | R7 | Se0/0 | R6 | Se0/0 | **Serial** | `192.168.78.0/29` | `192.168.78.1` | `192.168.78.2` |
+| 3 | R6 | Fa0/1 | R1 | Fa0/0 | Ethernet | `192.168.78.8/29` | `192.168.78.9` | `192.168.78.10` |
+| 4 | R1 | Se0/0 | R4 | Se0/0 | **Serial** | `192.168.78.16/29` | `192.168.78.17` | `192.168.78.18` |
 | 5 | R4 | Fa0/1 | R5 | Fa0/0 | Ethernet | `192.168.78.24/29` | `192.168.78.25` | `192.168.78.26` |
 | 6 | R5 | Fa0/1 | R2 | Fa0/0 | Ethernet | `192.168.78.32/29` | `192.168.78.33` | `192.168.78.34` |
 | 7 | R2 | Se0/0 | R3 | Se0/0 | **Serial** | `192.168.78.40/29` | `192.168.78.41` | `192.168.78.42` |
@@ -70,8 +71,8 @@ Guía para montar, configurar y verificar la topología en GNS3.
 
 | Enlace (#) | Lado DCE | Interfaz DCE |
 |------------|----------|--------------|
-| R6 ↔ R1 (3) | R6 | Se0/0 |
-| R1 ↔ R4 (4) | R1 | Se0/1 |
+| R6 ↔ R7 (2) | R7 | Se0/0 |
+| R1 ↔ R4 (4) | R1 | Se0/0 |
 | R2 ↔ R3 (7) | R2 | Se0/0 |
 
 > En GNS3 el cable Serial indica cuál extremo es DCE. Configura `clock rate 64000` **solo** en ese extremo. Encapsulación por defecto: **HDLC**.
@@ -79,7 +80,7 @@ Guía para montar, configurar y verificar la topología en GNS3.
 ### 2.3 Esquema lógico
 
 ```
-LAN A ── R7 ══ R6 - - R1 - - R4 ══ R5 ══ R2 - - R3 ── LAN B
+LAN A ── R7 - - R6 ══ R1 - - R4 ══ R5 ══ R2 - - R3 ── LAN B
                                               │
                                          Cloud (Internet)
 
@@ -92,11 +93,11 @@ LAN A ── R7 ══ R6 - - R1 - - R4 ══ R5 ══ R2 - - R3 ── LAN B
 | Router | Interfaz | Tipo | Conecta a (#) | IP / rol |
 |--------|----------|------|---------------|----------|
 | R7 | Fa0/0 | Ethernet | LAN A (1) | `172.16.0.2/24` |
-| R7 | Fa0/1 | Ethernet | R6 (2) | `192.168.78.1/29` |
-| R6 | Fa0/0 | Ethernet | R7 (2) | `192.168.78.2/29` |
-| R6 | Se0/0 | Serial | R1 (3) | `192.168.78.9/29` — DCE |
-| R1 | Se0/0 | Serial | R6 (3) | `192.168.78.10/29` |
-| R1 | Se0/1 | Serial | R4 (4) | `192.168.78.17/29` — DCE |
+| R7 | Se0/0 | Serial | R6 (2) | `192.168.78.1/29` — DCE |
+| R6 | Se0/0 | Serial | R7 (2) | `192.168.78.2/29` |
+| R6 | Fa0/1 | Ethernet | R1 (3) | `192.168.78.9/29` |
+| R1 | Fa0/0 | Ethernet | R6 (3) | `192.168.78.10/29` |
+| R1 | Se0/0 | Serial | R4 (4) | `192.168.78.17/29` — DCE |
 | R4 | Se0/0 | Serial | R1 (4) | `192.168.78.18/29` |
 | R4 | Fa0/1 | Ethernet | R5 (5) | `192.168.78.25/29` |
 | R5 | Fa0/0 | Ethernet | R4 (5) | `192.168.78.26/29` |
@@ -126,9 +127,9 @@ Máscara fija: **`255.255.255.248` (`/29`)** → 6 hosts útiles por subred (cum
 
 | Enlace (#) | Subred | Router A | If. A | IP A | Router B | If. B | IP B | Medio |
 |------------|--------|----------|-------|------|----------|-------|------|-------|
-| 2 | `192.168.78.0/29` | R7 | Fa0/1 | `.1` | R6 | Fa0/0 | `.2` | Ethernet |
-| 3 | `192.168.78.8/29` | R6 | Se0/0 | `.9` | R1 | Se0/0 | `.10` | **Serial** |
-| 4 | `192.168.78.16/29` | R1 | Se0/1 | `.17` | R4 | Se0/0 | `.18` | **Serial** |
+| 2 | `192.168.78.0/29` | R7 | Se0/0 | `.1` | R6 | Se0/0 | `.2` | **Serial** |
+| 3 | `192.168.78.8/29` | R6 | Fa0/1 | `.9` | R1 | Fa0/0 | `.10` | Ethernet |
+| 4 | `192.168.78.16/29` | R1 | Se0/0 | `.17` | R4 | Se0/0 | `.18` | **Serial** |
 | 5 | `192.168.78.24/29` | R4 | Fa0/1 | `.25` | R5 | Fa0/0 | `.26` | Ethernet |
 | 6 | `192.168.78.32/29` | R5 | Fa0/1 | `.33` | R2 | Fa0/0 | `.34` | Ethernet |
 | 7 | `192.168.78.40/29` | R2 | Se0/0 | `.41` | R3 | Se0/0 | `.42` | **Serial** |
@@ -147,7 +148,7 @@ Máscara fija: **`255.255.255.248` (`/29`)** → 6 hosts útiles por subred (cum
 
 | Router | Protocolo | Interfaces participantes |
 |--------|-----------|--------------------------|
-| R1 | **Ninguno** | Se0/0, Se0/1 — rutas estáticas |
+| R1 | **Ninguno** | Fa0/0, Se0/0 — rutas estáticas |
 | R4, R6, R7 | **IS-IS** | Fa y Se según tabla 2.4 |
 | R5 | **IS-IS + OSPF** | Fa0/0 (IS-IS), Fa0/1 (OSPF) + redistribución |
 | R2, R3 | **OSPF 1** área 0 | Fa0/0 + Se0/0 en R2; Se0/0 + Fa0/1 en R3 |
@@ -158,7 +159,7 @@ R1 no ejecuta IGP. Configuración requerida:
 
 | Ruta | Next-hop | Motivo |
 |------|----------|--------|
-| `0.0.0.0/0` | `192.168.78.9` (R6 Se0/0) | Salida hacia el backbone |
+| `0.0.0.0/0` | `192.168.78.9` (R6 Fa0/1) | Salida hacia el backbone |
 | `172.16.0.0/24` | `192.168.78.9` (R6) | Conectividad hacia LAN A vía IS-IS en R6→R7 |
 
 ### 4.2 Conectividad extremo a extremo
@@ -178,10 +179,10 @@ R1 no ejecuta IGP. Configuración requerida:
 
 ```ios
 conf t
-interface se0/0
+interface fa0/0
  ip address 192.168.78.10 255.255.255.248
  no shutdown
-interface se0/1
+interface se0/0
  ip address 192.168.78.17 255.255.255.248
  clock rate 64000
  no shutdown
@@ -195,19 +196,18 @@ wr
 
 ```ios
 conf t
-interface fa0/0
+interface se0/0
  ip address 192.168.78.2 255.255.255.248
  no shutdown
-interface se0/0
+interface fa0/1
  ip address 192.168.78.9 255.255.255.248
- clock rate 64000
  no shutdown
 router isis CORE
  net 49.0001.0000.0000.0006.00
  is-type level-2-only
-interface fa0/0
- ip router isis CORE
 interface se0/0
+ ip router isis CORE
+interface fa0/1
  ip router isis CORE
 end
 wr
@@ -220,15 +220,16 @@ conf t
 interface fa0/0
  ip address 172.16.0.2 255.255.255.0
  no shutdown
-interface fa0/1
+interface se0/0
  ip address 192.168.78.1 255.255.255.248
+ clock rate 64000
  no shutdown
 router isis CORE
  net 49.0001.0000.0000.0007.00
  is-type level-2-only
 interface fa0/0
  ip router isis CORE
-interface fa0/1
+interface se0/0
  ip router isis CORE
 end
 wr
@@ -338,8 +339,8 @@ ip 10.10.10.10 10.10.10.1 24
 2. Arrastrar **7 routers 3745**, **2 VPCS**, **1 Cloud**.
 3. En cada 3745: instalar `NM-2FE2W` + **2× WIC-2T** (según enunciado).
 4. Cablear según **tabla maestra 2.2**:
-   - Enlaces **1, 2, 5, 6, 8, 9** → cable **Ethernet**.
-   - Enlaces **3, 4, 7** → cable **Serial**.
+   - Enlaces **1, 3, 5, 6, 8, 9** → cable **Ethernet**.
+   - Enlaces **2, 4, 7** → cable **Serial** (R6–R7, R1–R4, R2–R3).
 5. Iniciar todos los nodos.
 6. Aplicar configs IOS (sección 5) en orden: **R7 → R6 → R1 → R4 → R5 → R2 → R3**.
 7. Verificar seriales `up/up`: `show ip interface brief`.
@@ -355,7 +356,6 @@ ip 10.10.10.10 10.10.10.1 24
 ```ios
 show ip interface brief
 show interfaces serial 0/0
-show interfaces serial 0/1    ! solo en R1
 show controllers serial 0/0
 show ip route
 show isis neighbors
@@ -366,9 +366,10 @@ show ip ospf neighbor
 
 | Desde | Hacia | Enlace # | Comando |
 |-------|-------|----------|---------|
-| R1 | R6 | 3 | `ping 192.168.78.9` |
+| R7 | R6 | 2 | `ping 192.168.78.2` |
+| R6 | R1 | 3 | `ping 192.168.78.10` |
 | R1 | R4 | 4 | `ping 192.168.78.18` |
-| R1 | LAN A | 1 vía R6/R7 | `ping 172.16.0.1` |
+| R1 | LAN A | 3→2→1 vía R6/R7 | `ping 172.16.0.1` |
 | R2 | R3 | 7 | `ping 192.168.78.42` |
 | R7 | LAN A | 1 | `ping 172.16.0.1` |
 | R3 | LAN B | 8 | `ping 10.10.10.10` |
@@ -378,9 +379,9 @@ show ip ospf neighbor
 ### 7.3 Checklist de cumplimiento
 
 - [ ] Cableado coincide con tabla maestra 2.2 (9 enlaces)
-- [ ] Serial en enlaces **3, 4 y 7** (R6–R1, R1–R4, R2–R3)
-- [ ] Ethernet en enlaces **1, 2, 5, 6, 8, 9**
-- [ ] `clock rate 64000` en DCE: R6 Se0/0, R1 Se0/1, R2 Se0/0
+- [ ] Serial en enlaces **2, 4 y 7** (R6–R7, R1–R4, R2–R3)
+- [ ] Ethernet en enlaces **1, 3, 5, 6, 8, 9** (incluye **R6–R1**)
+- [ ] `clock rate 64000` en DCE: R7 Se0/0, R1 Se0/0, R2 Se0/0
 - [ ] Subnetting `/29` en enlaces 2–7
 - [ ] IS-IS en R4, R5, R6, R7
 - [ ] OSPF en R2, R3 y frontera en R5
@@ -401,15 +402,16 @@ Auditoría cruzada entre todas las secciones del README:
 | Tabla 2.2 ↔ Tabla 2.4 (interfaces e IPs) | ✅ Coinciden en 15 interfaces |
 | Tabla 2.2 ↔ Tabla 3.1 (subredes enlaces 2–7) | ✅ Mismas subredes e IPs |
 | Tabla 2.2 ↔ Config IOS (sección 5) | ✅ Cada `interface` e IP verificada |
-| Enlaces Serial 2.2 ↔ DCE 2.2 ↔ `clock rate` en IOS | ✅ R6 Se0/0, R1 Se0/1, R2 Se0/0 |
-| Enlaces Serial ↔ Medio en 3.1 | ✅ Filas 3, 4 y 7 |
+| Enlaces Serial 2.2 ↔ DCE 2.2 ↔ `clock rate` en IOS | ✅ R7 Se0/0, R1 Se0/0, R2 Se0/0 |
+| Enlaces Serial ↔ Medio en 3.1 | ✅ Filas 2, 4 y 7 |
+| R6–R1 es Ethernet en todas las secciones | ✅ Enlace #3 — Fa0/1 ↔ Fa0/0 |
 | Círculo IS-IS ↔ routers con `router isis` | ✅ R4, R5, R6, R7 — R1 excluido |
 | Círculo OSPF ↔ routers con `router ospf` | ✅ R2, R3, R5 |
 | LAN A en R7 Fa0/0 | ✅ `172.16.0.2` — enlace #1 |
 | LAN B en R3 Fa0/1 | ✅ `10.10.10.1` — enlace #8 |
 | Cloud en R3 Fa1/0 | ✅ Requiere `NM-2FE2W` — enlace #9 |
-| R1 next-hop estático `192.168.78.9` | ✅ R6 Se0/0 enlace #3 |
-| Redistribución | ✅ Solo R5 (corregido; R2 no redistribuye) |
+| R1 next-hop estático `192.168.78.9` | ✅ R6 Fa0/1 — enlace #3 |
+| Redistribución | ✅ Solo R5 |
 
 ---
 
