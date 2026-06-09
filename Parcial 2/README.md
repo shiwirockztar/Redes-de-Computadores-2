@@ -222,21 +222,21 @@ wr
 
 ```ios
 conf t
+
 interface fa0/0
  ip address 172.16.0.2 255.255.255.0
  no shutdown
+ ip router isis CORE
+
 interface se0/0
  ip address 192.168.78.1 255.255.255.248
- clock rate 64000
  no shutdown
- isis network point-to-point
+ ip router isis CORE
+
 router isis CORE
  net 49.0001.0000.0000.0007.00
  is-type level-2-only
-interface fa0/0
- ip router isis CORE
-interface se0/0
- ip router isis CORE
+
 end
 wr
 ```
