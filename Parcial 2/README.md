@@ -188,7 +188,7 @@ interface se0/0
  ip address 192.168.78.17 255.255.255.248
  no shutdown
 
-! SOLO ruta por defecto (esto es suficiente)
+! SOLO ruta por defecto
 ip route 0.0.0.0 0.0.0.0 192.168.78.9
 
 end
@@ -213,6 +213,9 @@ interface fa0/1
 router isis CORE
  net 49.0001.0000.0000.0006.00
  is-type level-2-only
+
+! 🔥 CLAVE: anunciar rutas estáticas (R1 y demás edge si existen)
+redistribute static
 
 end
 wr
@@ -277,15 +280,15 @@ interface fa0/1
  ip address 192.168.78.33 255.255.255.248
  no shutdown
 
-router ospf 1
- router-id 5.5.5.5
- network 192.168.78.32 0.0.0.7 area 0
- redistribute isis CORE subnets
-
 router isis CORE
  net 49.0001.0000.0000.0005.00
  is-type level-2-only
  redistribute ospf 1 metric 20
+
+router ospf 1
+ router-id 5.5.5.5
+ network 192.168.78.32 0.0.0.7 area 0
+ redistribute isis CORE subnets
 
 end
 wr
@@ -343,12 +346,15 @@ wr
 ### Hosts LAN (VPCS)
 
 ```bash
-# LAN A — enlace #1
-# El host DEBE ser 172.16.0.1 (gateway = R7 en 172.16.0.2)
 ip 172.16.0.1 172.16.0.2 24
+save
+ping 172.16.0.2
+```
 
-# LAN B — enlace #8
+```bash
 ip 10.10.10.10 10.10.10.1 24
+save
+ping 10.10.10.1
 ```
 
 > **Importante LAN A:** Si el VPCS usa otra IP (ej. `.10`) o gateway incorrecto, `ping 172.16.0.1` desde R7 fallará con `.....` (timeout) porque nadie responde en esa dirección.
