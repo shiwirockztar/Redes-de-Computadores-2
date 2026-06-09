@@ -188,7 +188,6 @@ interface se0/0
  ip address 192.168.78.17 255.255.255.248
  no shutdown
 
-! SOLO ruta por defecto
 ip route 0.0.0.0 0.0.0.0 192.168.78.9
 
 end
@@ -202,20 +201,19 @@ conf t
 
 interface se0/0
  ip address 192.168.78.2 255.255.255.248
- no shutdown
  ip router isis CORE
+ no shutdown
 
 interface fa0/1
  ip address 192.168.78.9 255.255.255.248
- no shutdown
  ip router isis CORE
+ no shutdown
 
 router isis CORE
  net 49.0001.0000.0000.0006.00
  is-type level-2-only
-
-! 🔥 CLAVE: anunciar rutas estáticas (R1 y demás edge si existen)
-redistribute static
+ redistribute connected
+ redistribute static ip
 
 end
 wr
@@ -228,17 +226,18 @@ conf t
 
 interface fa0/0
  ip address 172.16.0.2 255.255.255.0
- no shutdown
  ip router isis CORE
+ no shutdown
 
 interface se0/0
  ip address 192.168.78.1 255.255.255.248
- no shutdown
  ip router isis CORE
+ no shutdown
 
 router isis CORE
  net 49.0001.0000.0000.0007.00
  is-type level-2-only
+ redistribute connected
 
 end
 wr
@@ -251,13 +250,13 @@ conf t
 
 interface se0/0
  ip address 192.168.78.18 255.255.255.248
- no shutdown
  ip router isis CORE
+ no shutdown
 
 interface fa0/1
  ip address 192.168.78.25 255.255.255.248
- no shutdown
  ip router isis CORE
+ no shutdown
 
 router isis CORE
  net 49.0001.0000.0000.0004.00
@@ -288,7 +287,7 @@ router isis CORE
 router ospf 1
  router-id 5.5.5.5
  network 192.168.78.32 0.0.0.7 area 0
- redistribute isis CORE subnets
+ redistribute isis CORE subnets metric 1
 
 end
 wr
@@ -329,10 +328,6 @@ interface fa0/1
  ip address 10.10.10.1 255.255.255.0
  no shutdown
 
-interface fa1/0
- ip address dhcp
- no shutdown
-
 router ospf 1
  router-id 3.3.3.3
  network 192.168.78.40 0.0.0.7 area 0
@@ -344,6 +339,13 @@ wr
 ```
 
 ### Hosts LAN (VPCS)
+```bash
+ip 172.16.0.1 172.16.0.2 24
+```
+
+```bash
+ip 10.10.10.10 10.10.10.1 24
+```
 
 ```bash
 ip 172.16.0.1 172.16.0.2 24
@@ -356,6 +358,25 @@ ip 10.10.10.10 10.10.10.1 24
 save
 ping 10.10.10.1
 ```
+
+1. Configurados 2 IGP en topología. IS-IS en alguna de las dos partes
+de la topología. y otro IGP de libre elección.
+2. El router R1 no ejecuta ningún protocolo de enrutamiento. Sin embargo, la
+conectividad a la LAN A debe estar garantizada.
+
+Verificar que R1 no ejecuta protocolos
+```bash
+show ip protocols
+```
+Debe aparecer:
+```bash
+% No routing protocol is configured
+```
+Sion embargo tiene conectividad a LAn
+```bash
+ping 172.16.0.1
+```
+
 
 > **Importante LAN A:** Si el VPCS usa otra IP (ej. `.10`) o gateway incorrecto, `ping 172.16.0.1` desde R7 fallará con `.....` (timeout) porque nadie responde en esa dirección.
 
@@ -376,6 +397,48 @@ ping 10.10.10.1
 9. Configurar Cloud/NAT para DHCP en R3 Fa1/0 (enlace #9).
 
 ---
+
+2. Verificar vecinos IS-IS
+
+En R6:
+```bash
+show isis neighbors
+```
+Debe verse:
+```bash
+R7  L2  UP
+```
+
+En R4:
+```bash
+show isis neighbors
+```
+Debe verse:
+```bash
+R5  L2  UP
+```
+
+3. Verificar vecinos OSPF
+
+En R2:
+```bash
+show ip ospf neighbor
+```
+Debe verse:
+```bash
+Debe verse R3 y R5.
+```
+
+4. Verificar rutas IS-IS
+
+En R6:
+```bash
+show ip route isis
+```
+Debe verse:
+```bash
+i L2 172.16.0.0/24
+```
 
 ## 7. Verificación
 
