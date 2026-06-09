@@ -295,17 +295,20 @@ wr
 
 ```ios
 conf t
+
 interface fa0/0
  ip address 192.168.78.34 255.255.255.248
  no shutdown
+
 interface se0/0
  ip address 192.168.78.41 255.255.255.248
- clock rate 64000
  no shutdown
+
 router ospf 1
  router-id 2.2.2.2
  network 192.168.78.32 0.0.0.7 area 0
  network 192.168.78.40 0.0.0.7 area 0
+
 end
 wr
 ```
