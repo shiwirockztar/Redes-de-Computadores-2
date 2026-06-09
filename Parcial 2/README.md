@@ -317,20 +317,25 @@ wr
 
 ```ios
 conf t
+
 interface se0/0
  ip address 192.168.78.42 255.255.255.248
  no shutdown
+
 interface fa0/1
  ip address 10.10.10.1 255.255.255.0
  no shutdown
+
 interface fa1/0
  ip address dhcp
  no shutdown
+
 router ospf 1
  router-id 3.3.3.3
  network 192.168.78.40 0.0.0.7 area 0
  network 10.10.10.0 0.0.0.255 area 0
  default-information originate
+
 end
 wr
 ```
