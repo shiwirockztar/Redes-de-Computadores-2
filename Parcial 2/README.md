@@ -268,22 +268,25 @@ wr
 
 ```ios
 conf t
+
 interface fa0/0
  ip address 192.168.78.26 255.255.255.248
  no shutdown
+
 interface fa0/1
  ip address 192.168.78.33 255.255.255.248
  no shutdown
+
+router ospf 1
+ router-id 5.5.5.5
+ network 192.168.78.32 0.0.0.7 area 0
+ redistribute isis CORE subnets
+
 router isis CORE
  net 49.0001.0000.0000.0005.00
  is-type level-2-only
  redistribute ospf 1 metric 20
-interface fa0/0
- ip router isis CORE
-router ospf 1
- router-id 5.5.5.5
- redistribute isis CORE subnets
- network 192.168.78.32 0.0.0.7 area 0
+
 end
 wr
 ```
