@@ -179,15 +179,18 @@ R1 no ejecuta IGP. Configuración requerida:
 
 ```ios
 conf t
+
 interface fa0/0
  ip address 192.168.78.10 255.255.255.248
  no shutdown
+
 interface se0/0
  ip address 192.168.78.17 255.255.255.248
- clock rate 64000
  no shutdown
+
+! SOLO ruta por defecto (esto es suficiente)
 ip route 0.0.0.0 0.0.0.0 192.168.78.9
-ip route 172.16.0.0 255.255.255.0 192.168.78.9
+
 end
 wr
 ```
