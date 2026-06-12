@@ -266,6 +266,15 @@ wr
 
 #### R5
 
+Sí, R5 debería tener protocolo de enrutamiento si va a cumplir el papel de unión entre las dos partes de la topología.
+
+Aunque lo dibujes por fuera de los dos círculos, eso normalmente significa que no pertenece “visualmente” a un solo dominio, no que deba quedarse sin enrutamiento dinámico. En tu caso, R5 está haciendo de punto de frontera entre protocolo 1 y protocolo 2, así que necesita aprender y anunciar rutas para que exista conectividad real entre ambos lados. Si además es el Route Reflector iBGP, también necesita alcanzar las loopbacks de R4, R2 y R3.
+
+En la práctica, lo correcto es que R5 participe en el enrutamiento del lado que conecta:
+
+si une ambos dominios, debe tener presencia en ambos protocolos o al menos actuar como redistribuidor entre ellos;
+si no tuviera ningún protocolo, tendrías que compensarlo con rutas estáticas, y eso complica la topología y no encaja bien con el objetivo del parcial.
+
 ```ios
 conf t
 
