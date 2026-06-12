@@ -140,8 +140,6 @@ end
 wr
 ```
 
-> **Nota:** Durante las pruebas se verificó que una ruta por defecto adicional hacia 192.168.78.9 provocaba mensajes "TTL expired in transit" debido a un bucle entre R1 y R6. La solución fue dejar como salida por defecto únicamente el enlace hacia R4 (192.168.78.18).
-
 ### 3.2 Verificacion de R1
 
 > Si el ping a `10.10.10.10` falla, revisa primero que R6 anuncie también la red `192.168.78.8/29` en IS-IS. Sin esa red no existe retorno completo hacia R1.
@@ -181,8 +179,6 @@ end
 wr
 ```
 
-> **Nota:** La interfaz FastEthernet0/1 (192.168.78.9/29) participa directamente en IS-IS mediante `ip router isis CORE`, por lo que la red de tránsito entre R6 y R1 queda anunciada automáticamente al dominio IS-IS.
-
 ### 3.4 Configuracion de R7
 
 R7 es el borde de LAN A y por eso anuncia la red de usuarios al dominio interno.
@@ -206,13 +202,9 @@ router isis CORE
  is-type level-2-only
  redistribute connected
 
-ip route 0.0.0.0 0.0.0.0 192.168.78.2
-
 end
 wr
 ```
-
-> **Nota:** Aunque R7 aprende las redes internas mediante IS-IS, se configuró una ruta por defecto hacia R6 para asegurar el retorno del tráfico destinado a redes externas al dominio local.
 
 ### 3.5 Verificacion de R6 y R7
 
@@ -260,8 +252,6 @@ interface loopback0
  ip address 4.4.4.4 255.255.255.255
 
 ip route 172.16.0.0 255.255.255.0 192.168.78.17
-ip route 192.168.78.0 255.255.255.248 192.168.78.17
-ip route 192.168.78.8 255.255.255.248 192.168.78.17
 
 router ospf 1
  router-id 4.4.4.4
@@ -274,18 +264,22 @@ end
 wr
 ```
 
-> **Nota:** Debido a que R1 no ejecuta ningún protocolo de enrutamiento dinámico, R4 requiere rutas estáticas hacia las redes del dominio IS-IS para garantizar la conectividad extremo a extremo. Estas rutas son posteriormente redistribuidas en OSPF mediante `redistribute static`.
-
 #### R5
 
-> **Nota:** R5 actúa como punto de redistribución entre IS-IS y OSPF, además de funcionar como *Route Reflector* para las sesiones iBGP del AS 65078.
+Sí, R5 debería tener protocolo de enrutamiento si va a cumplir el papel de unión entre las dos partes de la topología.
+
+Aunque lo dibujes por fuera de los dos círculos, eso normalmente significa que no pertenece “visualmente” a un solo dominio, no que deba quedarse sin enrutamiento dinámico. En tu caso, R5 está haciendo de punto de frontera entre protocolo 1 y protocolo 2, así que necesita aprender y anunciar rutas para que exista conectividad real entre ambos lados. Si además es el Route Reflector iBGP, también necesita alcanzar las loopbacks de R4, R2 y R3.
+
+En la práctica, lo correcto es que R5 participe en el enrutamiento del lado que conecta:
+
+si une ambos dominios, debe tener presencia en ambos protocolos o al menos actuar como redistribuidor entre ellos;
+si no tuviera ningún protocolo, tendrías que compensarlo con rutas estáticas, y eso complica la topología y no encaja bien con el objetivo del parcial.
 
 ```ios
 conf t
 
 interface fa0/0
  ip address 192.168.78.26 255.255.255.248
- ip router isis CORE
  no shutdown
 
 interface fa0/1
@@ -301,20 +295,10 @@ router ospf 1
  network 192.168.78.24 0.0.0.7 area 0
  network 192.168.78.32 0.0.0.7 area 0
  network 5.5.5.5 0.0.0.0 area 0
- redistribute connected subnets
- redistribute isis CORE level-2 metric 1 subnets
-
-router isis CORE
- net 49.0001.0000.0000.0005.00
- is-type level-2-only
- redistribute connected
- redistribute ospf 1 metric 20
 
 end
 wr
 ```
-
-> **Nota:** La interfaz FastEthernet0/0 participa en IS-IS porque R5 funciona como punto de redistribución entre el dominio IS-IS (R4-R5) y el dominio OSPF (R5-R2-R3). Esto permite el intercambio de rutas entre ambos IGP y garantiza la conectividad entre LAN A y LAN B.
 
 #### R2
 
@@ -525,15 +509,6 @@ Desde LAN A:
 ping 10.10.10.10
 ```
 
-```bash
-LANA> ping 10.10.10.10
-
-84 bytes from 10.10.10.10 icmp_seq=3 ttl=57 time≈123 ms
-84 bytes from 10.10.10.10 icmp_seq=4 ttl=57 time≈122 ms
-84 bytes from 10.10.10.10 icmp_seq=5 ttl=57 time≈121 ms
-```
-
-
 Desde LAN B:
 
 ```bash
@@ -581,16 +556,6 @@ traceroute 172.16.0.1
 ## 9. Nota importante
 
 La direccion del vecino eBGP y el ASN remoto del profesor pueden cambiar en el examen. La estructura interna del README queda lista para GNS3 y solo habria que ajustar ese dato puntual si el docente lo define de otra forma.
-
-LAN A → LAN B : OK
-LAN B → LAN A : OK
-IS-IS vecinos : OK
-OSPF vecinos : OK
-iBGP por loopback : OK
-Route Reflector : OK
-R1 sin protocolo dinámico : OK
-eBGP listo para conexión con el profesor : OK
-
 
 faltantes
 Te preparo una versión más corta del README para exponerla oralmente.
