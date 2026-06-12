@@ -17,6 +17,16 @@ Guia organizada en 6 numerales para montar, configurar y verificar la topologia 
 | iBGP | Sin full mesh, con Route Reflector |
 | eBGP | Con el router/Cloud del profesor |
 
+En la topologia dibujada, el circulo de **protocolo 1** representa el dominio izquierdo de la red, donde R1 es un router de transito sin enrutamiento dinamico y R4 participa como punto de borde. El circulo de **protocolo 2** representa el dominio derecho, correspondiente a R2 y R3 con OSPF area 0.
+
+Con esa lectura, el documento cumple los numerales asi:
+- Numeral 1: existen 2 IGP, IS-IS y OSPF.
+- Numeral 2: R1 no ejecuta enrutamiento dinamico.
+- Numeral 3: iBGP sin malla completa mediante Route Reflector.
+- Numeral 4: solo se anuncia una red externa por eBGP, distinta de LAN A y LAN B.
+- Numeral 5: existe la sesion eBGP con la topologia del profesor.
+- Numeral 6: las actualizaciones iBGP salen por loopback0, no por interfaz fisica.
+
 Topologia de referencia:
 
 ```text
