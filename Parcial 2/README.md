@@ -142,6 +142,8 @@ wr
 
 ### 3.2 Verificacion de R1
 
+> Si el ping a `10.10.10.10` falla, revisa primero que R6 anuncie también la red `192.168.78.8/29` en IS-IS. Sin esa red no existe retorno completo hacia R1.
+
 ```ios
 show ip protocols
 show ip route
@@ -163,6 +165,7 @@ interface se0/0
 
 interface fa0/1
  ip address 192.168.78.9 255.255.255.248
+ ip router isis CORE
  no shutdown
 
 ip route 0.0.0.0 0.0.0.0 192.168.78.10
@@ -170,6 +173,7 @@ ip route 0.0.0.0 0.0.0.0 192.168.78.10
 router isis CORE
  net 49.0001.0000.0000.0006.00
  is-type level-2-only
+ redistribute connected
 
 end
 wr
