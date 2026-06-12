@@ -1,6 +1,6 @@
 # Parcial 2 - Laboratorio GNS3 (AS 65078)
 
-Guia organizada para montar, configurar y verificar la topologia del Parcial 2 en GNS3.
+Guia organizada en 6 numerales para montar, configurar y verificar la topologia del Parcial 2 en GNS3.
 
 ## 1. Dos IGP en la topologia
 
@@ -18,8 +18,6 @@ Guia organizada para montar, configurar y verificar la topologia del Parcial 2 e
 | eBGP | Con el router/Cloud del profesor |
 
 En la topologia dibujada, el circulo de **protocolo 1** representa el dominio izquierdo de la red, donde R1 es un router de transito sin enrutamiento dinamico y R4 participa como punto de borde. El circulo de **protocolo 2** representa el dominio derecho, correspondiente a R2 y R3 con OSPF area 0.
-
-Los routers R6 y R7 tambien forman parte de la solucion porque sostienen el acceso a LAN A. R7 conecta la LAN A y anuncia esa red al resto de la topologia, mientras que R6 sirve como transito hacia R1.
 
 Con esa lectura, el documento cumple los numerales asi:
 - Numeral 1: existen 2 IGP, IS-IS y OSPF.
@@ -147,73 +145,6 @@ show ip protocols
 show ip route
 ping 172.16.0.1
 ping 10.10.10.10
-```
-
-### 3.3 Configuracion de R6
-
-R6 conecta R7 con R1 y participa en IS-IS hacia el lado izquierdo de la topologia.
-
-```ios
-conf t
-
-interface se0/0
- ip address 192.168.78.2 255.255.255.248
- ip router isis CORE
- no shutdown
-
-interface fa0/1
- ip address 192.168.78.9 255.255.255.248
- no shutdown
-
-ip route 0.0.0.0 0.0.0.0 192.168.78.10
-
-router isis CORE
- net 49.0001.0000.0000.0006.00
- is-type level-2-only
-
-end
-wr
-```
-
-### 3.4 Configuracion de R7
-
-R7 es el borde de LAN A y por eso anuncia la red de usuarios al dominio interno.
-
-```ios
-conf t
-
-interface fa0/0
- ip address 172.16.0.2 255.255.255.0
- ip router isis CORE
- no shutdown
-
-interface se0/0
- ip address 192.168.78.1 255.255.255.248
- ip router isis CORE
- clock rate 64000
- no shutdown
-
-router isis CORE
- net 49.0001.0000.0000.0007.00
- is-type level-2-only
- redistribute connected
-
-end
-wr
-```
-
-### 3.5 Verificacion de R6 y R7
-
-```ios
-show ip interface brief
-show isis neighbors
-show ip route
-```
-
-En R7 tambien debe responder la LAN A:
-
-```bash
-ping 172.16.0.1
 ```
 
 ## 4. Numeral 3: iBGP en el interior
@@ -422,83 +353,51 @@ La sesion eBGP se levanta en R3 hacia la direccion del profesor. En este README 
 
 La unica red anunciada por eBGP en este ejemplo es `203.0.113.0/24`, que es distinta de LAN A y LAN B.
 
-## 6. Verificacion por numeral
+## 6. Numeral 5 y 6: verificacion final
 
-### Numeral 1: dos IGP en la topologia
+### 6.1 IGP y BGP
 
-Que se hizo: se configuro IS-IS en la parte de LAN A y OSPF en la parte de LAN B.
-
-Como comprobarlo: verifica vecinos y tablas de enrutamiento en ambos dominios.
+En routers IS-IS:
 
 ```ios
 show isis neighbors
-show ip ospf neighbor
-show ip route
+show isis database
 ```
 
-### Numeral 2: R1 sin protocolo de enrutamiento
-
-Que se hizo: R1 solo usa rutas estaticas y no ejecuta ningun protocolo dinamico.
-
-Como comprobarlo: en R1 debe aparecer que no hay protocolo de enrutamiento configurado y aun asi debe responder hacia LAN A.
+En routers OSPF:
 
 ```ios
-show ip protocols
-ping 172.16.0.1
+show ip ospf neighbor
+show ip ospf database
 ```
 
-### Numeral 3: iBGP sin malla completa
+En todos los routers:
 
-Que se hizo: se uso R5 como Route Reflector para evitar una malla completa iBGP.
+```ios
+show ip route
+show ip interface brief
+```
 
-Como comprobarlo: revisa el resumen BGP y confirma que los vecinos iBGP usan loopbacks.
+En BGP:
 
 ```ios
 show ip bgp summary
-show ip bgp neighbors
-```
-
-### Numeral 4: una sola red anunciada por eBGP
-
-Que se hizo: solo se anuncio `203.0.113.0/24` por eBGP.
-
-Como comprobarlo: en la tabla BGP debe verse ese prefijo y no deben anunciarse LAN A ni LAN B por eBGP.
-
-```ios
 show ip bgp
 ```
 
-### Numeral 5: eBGP con la topologia del profesor
-
-Que se hizo: R3 quedo listo para levantar la sesion eBGP con el vecino que defina el profesor.
-
-Como comprobarlo: cuando se cargue la IP correcta, `show ip bgp summary` debe mostrar la sesion en estado estable.
-
-```ios
-show ip bgp summary
-```
-
-### Numeral 6: iBGP sin usar IP fisica como origen
-
-Que se hizo: las sesiones iBGP usan `update-source loopback0`.
-
-Como comprobarlo: revisa la configuracion BGP y confirma que el origen sea la loopback, no una interfaz fisica.
-
-```ios
-show ip bgp neighbors
-```
-
-### Pruebas finales recomendadas
+### 6.2 Pruebas end-to-end
 
 Desde LAN A:
 
 ```bash
+ping 172.16.0.2
 ping 10.10.10.10
 ```
 
 Desde LAN B:
 
 ```bash
+ping 10.10.10.1
 ping 172.16.0.1
 ```
 
@@ -516,6 +415,14 @@ ping 172.16.0.1
 traceroute 172.16.0.1
 ```
 
+### 6.3 Comportamiento esperado
+
+- R1 debe mostrar `% No routing protocol is configured.`
+- R7 debe alcanzar `10.10.10.10`.
+- LAN A debe llegar a LAN B y viceversa.
+- R5 debe actuar como Route Reflector iBGP.
+- Las sesiones iBGP deben usar `update-source loopback0`.
+
 ## 7. Orden recomendado de implementacion
 
 1. Crear el proyecto en GNS3.
@@ -523,7 +430,7 @@ traceroute 172.16.0.1
 3. Instalar NM-2FE2W y 2 WIC-2T en cada router.
 4. Cablear segun la tabla de la seccion 2.
 5. Configurar interfaces e IPs.
-6. Levantar IS-IS en R6 y R7.
+6. Levantar IS-IS en R7 y R6.
 7. Levantar OSPF en R4, R5, R2 y R3.
 8. Crear loopbacks y sesiones iBGP.
 9. Configurar R1 con rutas estaticas.
@@ -533,9 +440,9 @@ traceroute 172.16.0.1
 ## 8. Resumen rapido por router
 
 - R7: LAN A + IS-IS.
-- R6: IS-IS + ruta estatica hacia R1.
+- R6: IS-IS + redistribucion de ruta estatica hacia LAN B.
 - R1: solo rutas estaticas.
-- R4: OSPF + BGP interior.
+- R4: OSPF + redistribucion de ruta estatica hacia LAN A + BGP.
 - R5: OSPF + Route Reflector iBGP.
 - R2: OSPF + cliente iBGP.
 - R3: OSPF + cliente iBGP + eBGP con ISP.
@@ -543,8 +450,3 @@ traceroute 172.16.0.1
 ## 9. Nota importante
 
 La direccion del vecino eBGP y el ASN remoto del profesor pueden cambiar en el examen. La estructura interna del README queda lista para GNS3 y solo habria que ajustar ese dato puntual si el docente lo define de otra forma.
-
-faltantes
-Te preparo una versión más corta del README para exponerla oralmente.
-Te saco un resumen por router, listo para memorizar en la sustentación.
-Te reviso el archivo README backup.md para dejarlo alineado con la versión final
