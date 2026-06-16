@@ -237,7 +237,7 @@ ip link set eth1 up
 udhcpc -i eth1
 
 # IP fija (si quieres estática en vez de DHCP)
-ip addr add 192.168.10.10/24 dev eth0
+ip addr add 192.168.10.10/24 dev eth1
 ip route add default via 192.168.10.1
 
 # DNS
@@ -267,6 +267,32 @@ save
 ping 192.168.10.1
 exit
 ```
+```bash
+# Puerto 1 (eth0 le pertenece a GNS3)
+ip link set eth1 up
+udhcpc -i eth1
+
+# IP fija (si quieres estática en vez de DHCP)
+ip addr add 192.168.10.20/24 dev eth1
+ip route add default via 192.168.10.1
+
+# DNS
+echo "nameserver 1.1.1.1" > /etc/resolv.conf
+
+# repos
+cat > /etc/apk/repositories << EOF
+http://dl-cdn.alpinelinux.org/alpine/v3.24/main
+http://dl-cdn.alpinelinux.org/alpine/v3.24/community
+EOF
+
+apk update
+apk add iperf3
+
+# test
+ping -c 2 192.168.10.1
+
+echo "READY"
+```
 
 3. PC_Descargas (puerto telnet: `5004`):
 
@@ -277,6 +303,32 @@ save
 ping 192.168.10.1
 exit
 ```
+```bash
+# Puerto 1 (eth0 le pertenece a GNS3)
+ip link set eth1 up
+udhcpc -i eth1
+
+# IP fija (si quieres estática en vez de DHCP)
+ip addr add 192.168.10.30/24 dev eth1
+ip route add default via 192.168.10.1
+
+# DNS
+echo "nameserver 1.1.1.1" > /etc/resolv.conf
+
+# repos
+cat > /etc/apk/repositories << EOF
+http://dl-cdn.alpinelinux.org/alpine/v3.24/main
+http://dl-cdn.alpinelinux.org/alpine/v3.24/community
+EOF
+
+apk update
+apk add iperf3
+
+# test
+ping -c 2 192.168.10.1
+
+echo "READY"
+```
 
 4. Servidor (VPCS de gestión) (puerto telnet: `5010`):
 
@@ -286,6 +338,32 @@ ip 192.168.40.10/24 192.168.40.1
 save
 ping 192.168.40.1
 exit
+```
+```bash
+# Puerto 1 (eth0 le pertenece a GNS3)
+ip link set eth1 up
+udhcpc -i eth1
+
+# IP fija (si quieres estática en vez de DHCP)
+ip addr add 192.168.40.10/24 dev eth1
+ip route add default via 192.168.40.1
+
+# DNS
+echo "nameserver 1.1.1.1" > /etc/resolv.conf
+
+# repos
+cat > /etc/apk/repositories << EOF
+http://dl-cdn.alpinelinux.org/alpine/v3.24/main
+http://dl-cdn.alpinelinux.org/alpine/v3.24/community
+EOF
+
+apk update
+apk add iperf3
+
+# test
+ping -c 2 192.168.40.1
+
+echo "READY"
 ```
 
 5. Verificacion de asignacion IP:
