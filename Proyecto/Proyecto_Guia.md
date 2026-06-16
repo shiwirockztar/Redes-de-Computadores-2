@@ -232,28 +232,36 @@ exit
 ```
 
 ```bash
-# Puerto 1 (eth0 le pertenece a GNS3)
+# ===== eth0: laboratorio GNS3 =====
+ip link set eth0 up
+ip addr add 192.168.10.10/24 dev eth0
+
+# ===== eth1: Internet =====
 ip link set eth1 up
 udhcpc -i eth1
-
-# IP fija (si quieres estática en vez de DHCP)
-ip addr add 192.168.10.10/24 dev eth1
-ip route add default via 192.168.10.1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
-# repos
+# Repositorios Alpine
 cat > /etc/apk/repositories << EOF
 http://dl-cdn.alpinelinux.org/alpine/v3.24/main
 http://dl-cdn.alpinelinux.org/alpine/v3.24/community
 EOF
 
+# Actualizar e instalar iperf3
 apk update
 apk add iperf3
 
-# test
+# Verificación
+ip addr
+ip route
+
+# Test hacia la red GNS3
 ping -c 2 192.168.10.1
+
+# Test Internet
+ping -c 2 1.1.1.1
 
 echo "READY"
 ```
@@ -268,28 +276,36 @@ ping 192.168.10.1
 exit
 ```
 ```bash
-# Puerto 1 (eth0 le pertenece a GNS3)
+# ===== eth0: laboratorio GNS3 =====
+ip link set eth0 up
+ip addr add 192.168.10.20/24 dev eth0
+
+# ===== eth1: Internet =====
 ip link set eth1 up
 udhcpc -i eth1
-
-# IP fija (si quieres estática en vez de DHCP)
-ip addr add 192.168.10.20/24 dev eth1
-ip route add default via 192.168.10.1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
-# repos
+# Repositorios Alpine
 cat > /etc/apk/repositories << EOF
 http://dl-cdn.alpinelinux.org/alpine/v3.24/main
 http://dl-cdn.alpinelinux.org/alpine/v3.24/community
 EOF
 
+# Actualizar e instalar iperf3
 apk update
 apk add iperf3
 
-# test
+# Verificación
+ip addr
+ip route
+
+# Test hacia la red GNS3
 ping -c 2 192.168.10.1
+
+# Test Internet
+ping -c 2 1.1.1.1
 
 echo "READY"
 ```
@@ -304,28 +320,36 @@ ping 192.168.10.1
 exit
 ```
 ```bash
-# Puerto 1 (eth0 le pertenece a GNS3)
+# ===== eth0: laboratorio GNS3 =====
+ip link set eth0 up
+ip addr add 192.168.10.30/24 dev eth0
+
+# ===== eth1: Internet =====
 ip link set eth1 up
 udhcpc -i eth1
-
-# IP fija (si quieres estática en vez de DHCP)
-ip addr add 192.168.10.30/24 dev eth1
-ip route add default via 192.168.10.1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
-# repos
+# Repositorios Alpine
 cat > /etc/apk/repositories << EOF
 http://dl-cdn.alpinelinux.org/alpine/v3.24/main
 http://dl-cdn.alpinelinux.org/alpine/v3.24/community
 EOF
 
+# Actualizar e instalar iperf3
 apk update
 apk add iperf3
 
-# test
+# Verificación
+ip addr
+ip route
+
+# Test hacia la red GNS3
 ping -c 2 192.168.10.1
+
+# Test Internet
+ping -c 2 1.1.1.1
 
 echo "READY"
 ```
@@ -340,28 +364,36 @@ ping 192.168.40.1
 exit
 ```
 ```bash
-# Puerto 1 (eth0 le pertenece a GNS3)
+# ===== eth0: laboratorio GNS3 =====
+ip link set eth0 up
+ip addr add 192.168.40.10/24 dev eth0
+
+# ===== eth1: Internet =====
 ip link set eth1 up
 udhcpc -i eth1
-
-# IP fija (si quieres estática en vez de DHCP)
-ip addr add 192.168.40.10/24 dev eth1
-ip route add default via 192.168.40.1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
-# repos
+# Repositorios Alpine
 cat > /etc/apk/repositories << EOF
 http://dl-cdn.alpinelinux.org/alpine/v3.24/main
 http://dl-cdn.alpinelinux.org/alpine/v3.24/community
 EOF
 
+# Actualizar e instalar iperf3
 apk update
 apk add iperf3
 
-# test
+# Verificación
+ip addr
+ip route
+
+# Test hacia la red GNS3
 ping -c 2 192.168.40.1
+
+# Test Internet
+ping -c 2 1.1.1.1
 
 echo "READY"
 ```
