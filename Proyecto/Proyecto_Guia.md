@@ -233,11 +233,11 @@ exit
 
 ```bash
 # Puerto 1 (eth0 le pertenece a GNS3)
-ip link set eth0 up
-udhcpc -i eth0
+ip link set eth1 up
+udhcpc -i eth1
 
 # IP fija (si quieres estática en vez de DHCP)
-ip addr add 192.168.10.10/24 dev eth0
+ip addr add 192.168.10.10/24 dev eth1
 ip route add default via 192.168.10.1
 
 # DNS
