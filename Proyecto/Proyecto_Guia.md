@@ -112,9 +112,9 @@ La ruta A simula un camino rápido (bajo retardo, alto ancho de banda) mientras 
 
 | Tráfico | Protocolo | Puerto | Características | Herramienta |
 |---------|-----------|--------|-----------------|------------|
-| Gaming | UDP | 5001 | Pequeño, constante, sensible a jitter | iperf3 |
-| Streaming | UDP/TCP | 5002 | Volumen medio, tolera mayor retardo | iperf3 |
-| Descargas | TCP | 5003 | Alto volumen, congestiona la red | iperf3 |
+| Gaming | UDP | 5015 | Pequeño, constante, sensible a jitter | iperf3 |
+| Streaming | UDP/TCP | 5016 | Volumen medio, tolera mayor retardo | iperf3 |
+| Descargas | TCP | 5017 | Alto volumen, congestiona la red | iperf3 |
 
 ---
 
@@ -812,7 +812,7 @@ ps aux | grep iperf3
 
 **Gaming (UDP) - desde PC_Gamer:**
 ```bash
-iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
+iperf3 -u -c 192.168.40.10 -p 5015 -b 500k -l 80 -t 10
 ```
 
 **Captura:**
@@ -821,12 +821,12 @@ iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 30
 
 **Streaming (UDP) - desde PC_Streaming:**
 ```bash
-iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 1400 -t 30
+iperf3 -u -c 192.168.40.10 -p 5016 -b 3M -l 1024 -t 30
 ```
 
 **Descargas (TCP) - desde PC_Descargas:**
 ```bash
-iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 30
+iperf3 -c 192.168.40.10 -p 5017 -P 4 -t 30
 ```
 
 ### Prueba 2: Congestión Simultánea (SIN QoS)
