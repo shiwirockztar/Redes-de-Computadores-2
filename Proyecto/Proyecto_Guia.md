@@ -810,6 +810,18 @@ ps aux | grep iperf3
 
 ### Prueba 1: Línea Base - Tráfico Individual
 
+### Iniciar servidor
+
+** desde servidor:**
+```bash
+pkill iperf3
+iperf3 -s -p 5015 -D
+iperf3 -s -p 5016 -D
+iperf3 -s -p 5017 -D
+#verificacion
+netstat -tulnp | grep iperf3
+```
+
 **Gaming (UDP) - desde PC_Gamer:**
 ```bash
 iperf3 -u -c 192.168.40.10 -p 5015 -b 500k -l 80 -t 10
@@ -819,15 +831,62 @@ iperf3 -u -c 192.168.40.10 -p 5015 -b 500k -l 80 -t 10
 - Copiar salida completa (throughput, jitter, pérdida)
 - Registrar RTT con ping simultáneo
 
-**Streaming (UDP) - desde PC_Streaming:**
+## los juegos:
+no mandan flujo constante perfecto
+mandan ráfagas pequeñas
+varían el ritmo
+tienen jitter y micro pausas
+2. Qué hacen esos “nuevos comandos”
+🎮 Gaming realista (UDP)
+-b 500k -l 80
+Qué cambia:
+-b 500k → menos ancho de banda (más realista)
+-l 80 → paquetes más pequeños (tipo game packets)
+Por qué es mejor:
+
+✔ juegos usan paquetes pequeños (50–120 bytes)
+✔ no saturan el enlace
+✔ el foco es latencia, no throughput
+pérdida artificial
+jitter más visible
+latencia más realista
+
+**Streaming (UDP/TCP) - desde PC_Streaming:**
 ```bash
 iperf3 -u -c 192.168.40.10 -p 5016 -b 3M -l 1024 -t 10
 ```
+video/audio tipo YouTube, Netflix
+paquetes grandes (1024 bytes)
+más tráfico continuo
+
+✔ streaming usa buffers grandes
+✔ tolera algo de delay
+✔ pero consume más ancho de banda
+más uso del enlace
+menos sensibilidad a jitter
+TCP se adapta mejor que UDP
 
 **Descargas (TCP) - desde PC_Descargas:**
 ```bash
 iperf3 -c 192.168.40.10 -p 5017 -P 4 -t 10
 ```
+descarga real (HTTP, Steam, etc.)
+Por qué es mejor:
+
+✔ TCP ya controla todo automáticamente:
+
+congestion control
+retransmisiones
+ventana deslizante
+
+
+el máximo throughput real de tu red
+saturación del enlace si existe
+
+## Tipo de tráfico	Qué se está midiendo realmente
+Gaming UDP	latencia + jitter
+Streaming	estabilidad + buffer
+Downloads TCP	capacidad máxima de la red
 
 ### Prueba 2: Congestión Simultánea (SIN QoS)
 
@@ -847,6 +906,7 @@ iperf3 -u -c 192.168.40.10 -p 5016 -b 3M -l 1024 -t 30 &
 ```bash
 iperf3 -c 192.168.40.10 -p 5017 -P 4 -t 30 &
 ```
+En la prueba sin QoS, el tráfico TCP de descargas compite de manera agresiva por el ancho de banda disponible, afectando principalmente al tráfico UDP de streaming, el cual presenta pérdidas superiores al 70%. El tráfico de gaming, al ser de menor volumen, mantiene mayor estabilidad.
 
 **Esperar a que terminen:**
 ```bash
