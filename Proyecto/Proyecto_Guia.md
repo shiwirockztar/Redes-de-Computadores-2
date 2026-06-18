@@ -821,12 +821,12 @@ iperf3 -u -c 192.168.40.10 -p 5015 -b 500k -l 80 -t 10
 
 **Streaming (UDP) - desde PC_Streaming:**
 ```bash
-iperf3 -u -c 192.168.40.10 -p 5016 -b 3M -l 1024 -t 30
+iperf3 -u -c 192.168.40.10 -p 5016 -b 3M -l 1024 -t 10
 ```
 
 **Descargas (TCP) - desde PC_Descargas:**
 ```bash
-iperf3 -c 192.168.40.10 -p 5017 -P 4 -t 30
+iperf3 -c 192.168.40.10 -p 5017 -P 4 -t 10
 ```
 
 ### Prueba 2: Congestión Simultánea (SIN QoS)
@@ -835,17 +835,17 @@ Ejecutar los tres tipos de tráfico en paralelo para congestionar la red:
 
 **Terminal en PC_Gamer:**
 ```bash
-iperf3 -u -c 192.168.40.10 -p 5001 -b 1M -l 120 -t 60 &
+iperf3 -u -c 192.168.40.10 -p 5015 -b 500k -l 80 -t 30 &
 ```
 
 **Terminal en PC_Streaming:**
 ```bash
-iperf3 -u -c 192.168.40.10 -p 5002 -b 8M -l 1400 -t 60 &
+iperf3 -u -c 192.168.40.10 -p 5016 -b 3M -l 1024 -t 30 &
 ```
 
 **Terminal en PC_Descargas:**
 ```bash
-iperf3 -c 192.168.40.10 -p 5003 -P 4 -t 60 &
+iperf3 -c 192.168.40.10 -p 5017 -P 4 -t 30 &
 ```
 
 **Esperar a que terminen:**
