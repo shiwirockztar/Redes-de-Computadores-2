@@ -1,94 +1,197 @@
-# FASE 5: Configuración de QoS
+🧠 FASE 5: CONFIGURACIÓN DE QoS (explicación por pasos)
+1️⃣ Clasificación de tráfico (ACLs)
+📌 Qué haces
 
-## 🧠 Objetivo de la implementación
+Creas ACLs:
 
-La implementación de QoS (Quality of Service) tiene como objetivo **gestionar y priorizar el tráfico de red** para evitar que la congestión afecte a los servicios más sensibles como gaming y streaming.
+ACL-GAME → UDP puerto 5001
+ACL-VIDEO → UDP/TCP puerto 5002
+ACL-BULK → TCP puerto 5003
+🧠 Para qué sirve
 
----
+Esto es el “etiquetado inicial” lógico del tráfico.
 
-## 1️⃣ Clasificación de tráfico (ACLs)
+👉 El router ahora puede decir:
 
-Se crean ACLs para identificar el tipo de tráfico:
+esto es gaming
+esto es streaming
+esto es descarga
+⚠️ Problema que soluciona
 
-- ACL-GAME → UDP puerto 5001  
-- ACL-VIDEO → UDP/TCP puerto 5002  
-- ACL-BULK → TCP puerto 5003  
+Antes de QoS:
 
-Esto permite que el router **reconozca el tipo de tráfico desde su origen**.
+Todo el tráfico era “igual”
+Router trataba UDP y TCP igual
+🚀 Mejora
 
----
+Permite:
 
-## 2️⃣ Class-map (agrupación de tráfico)
+separar tráfico crítico (gaming)
+identificar tráfico pesado (downloads)
+aplicar reglas diferentes por tipo
+2️⃣ Class-map (clasificación real en el router)
+📌 Qué haces
 
-Se asocian las ACLs a clases QoS:
+Asocias ACLs a clases:
 
-- CM-GAME  
-- CM-VIDEO  
-- CM-BULK  
+CM-GAME
+CM-VIDEO
+CM-BULK
+🧠 Para qué sirve
 
-Esto convierte el tráfico identificado en **clases tratables por QoS**.
+Convierte “listas de tráfico” en clases QoS reales.
 
----
+👉 El router ahora crea “grupos de tratamiento”.
 
-## 3️⃣ Policy-map de marcado (DSCP)
+🚀 Mejora
 
-Se asignan marcas de prioridad:
+Ya no se trata tráfico por IP o puerto manualmente en cada decisión:
 
-- Gaming → EF  
-- Streaming → AF41  
-- Descargas → CS1  
+todo queda organizado por clases
+base para aplicar políticas
+3️⃣ Policy-map de marcado (DSCP)
+📌 Qué haces
 
-El objetivo es que el paquete **lleve su prioridad dentro del header IP**.
+Asignas etiquetas DSCP:
 
----
+Tráfico	DSCP
+Gaming	EF
+Streaming	AF41
+Descargas	CS1
+🧠 Para qué sirve
 
-## 4️⃣ Aplicación del marcado en entrada (Ingress QoS)
+Esto es el punto clave:
 
-Se aplica la política en la interfaz de entrada:
+👉 estás marcando la prioridad dentro del paquete
 
-```bash
+⚠️ Problema que soluciona
+
+Antes:
+
+el router tenía que “adivinar” prioridad
+
+Ahora:
+
+el paquete ya lleva prioridad escrita
+🚀 Mejora real
+
+Esto permite que:
+
+todos los routers en el camino entiendan prioridad
+el tráfico crítico no dependa de su origen
+4️⃣ Aplicación del marcado en entrada (ingress QoS)
+📌 Qué haces
+
+Aplicas:
+
 service-policy input PM-MARKING
 
-Esto permite que el tráfico sea clasificado y marcado desde que entra al router.
+en la interfaz LAN del R1
 
+🧠 Para qué sirve
+
+Es el punto donde:
+
+👉 el tráfico entra a la red y se clasifica
+
+⚠️ Problema que soluciona
+
+Antes:
+
+el tráfico entraba sin control
+
+Ahora:
+
+entra ya clasificado y etiquetado
+🚀 Mejora
+evita que tráfico malicioso o pesado “se mezcle”
+primer punto de control de congestión
 5️⃣ LLQ + CBWFQ (colas de salida)
+📌 Qué haces
 
-Se definen colas de transmisión:
+Defines colas:
 
-Gaming → PRIORITY (LLQ)
-Streaming → CBWFQ 30%
-Descargas → CBWFQ 10%
-Default → Best effort
+Clase	Tipo
+Gaming	PRIORITY (LLQ)
+Streaming	CBWFQ 30%
+Downloads	CBWFQ 10%
+Default	Best effort
+🧠 Esto es lo MÁS importante del proyecto
 
-Esto controla cómo se transmite el tráfico cuando hay congestión.
+Aquí es donde realmente cambia el rendimiento.
 
+⚠️ Problema sin QoS
+
+En Fase 4:
+
+TCP (descargas) saturaba la cola
+UDP (gaming/streaming) sufría pérdida masiva
+🚀 Mejora con QoS
+🎮 Gaming (LLQ)
+siempre primero
+cola de baja latencia
+casi cero jitter
+
+👉 soluciona:
+
+lag
+pérdida UDP crítica
+📺 Streaming (CBWFQ 30%)
+tiene ancho garantizado
+
+👉 soluciona:
+
+buffering extremo
+pérdida masiva UDP
+📥 Descargas (10%)
+limitado intencionalmente
+
+👉 evita:
+
+saturación de red
+que TCP destruya el resto
 6️⃣ Shaping (control de tasa global)
+📌 Qué haces
 shape average 8000000
+🧠 Para qué sirve
 
-Limita la salida total a 8 Mbps.
+👉 limita toda la salida a 8 Mbps
 
-Esto evita que la interfaz se sature y hace el tráfico más predecible y estable.
+⚠️ Problema que soluciona
 
-7️⃣ Policing (control de descargas)
+Sin shaping:
+
+tráfico puede saturar interfaz física
+colas se vuelven incontrolables
+🚀 Mejora
+evita congestión “brusca”
+convierte la red en flujo controlado
+hace QoS predecible
+7️⃣ Policing (control agresivo de descargas)
+📌 Qué haces
 police 2000000
+🧠 Para qué sirve
 
-Si el tráfico de descargas supera el límite, los paquetes se descartan.
+👉 si descargas exceden límite → se descartan
 
-Esto protege el resto del tráfico bajo alta carga.
-
+🚀 Mejora
+evita que TCP consuma toda la red
+protege tráfico crítico incluso bajo carga extrema
 📊 RESUMEN GENERAL DE LA FASE 5
-🔴 SIN QoS (Fase 4)
-FIFO sin control
-TCP domina el ancho de banda
-UDP pierde gran cantidad de paquetes
-Alta latencia y jitter
-Red congestionada y no determinística
+🔴 SIN QoS (tu Fase 4)
+FIFO simple
+TCP domina todo
+UDP pierde hasta 90%
+jitter alto
+red caótica
 🟢 CON QoS (Fase 5)
-Tipo de tráfico	Mejora
-Gaming	Baja latencia + prioridad alta
-Streaming	Flujo estable y garantizado
-Descargas	Limitadas para no afectar la red
-Red general	Controlada y predecible
-🎯 IDEA CLAVE
+Elemento	Mejora
+Gaming	baja latencia + baja pérdida
+Streaming	estable + garantizado
+TCP downloads	limitado intencionalmente
+Red	controlada y predecible
+🎯 IDEA CLAVE PARA TU INFORME
+
+Puedes resumirlo así:
 
 QoS transforma una red congestionada y no determinística en un sistema de priorización controlada donde el tráfico crítico (gaming) recibe tratamiento preferencial mediante LLQ, mientras que el tráfico no crítico (descargas) es limitado mediante policing y CBWFQ, estabilizando la latencia y reduciendo la pérdida de paquetes.
