@@ -912,6 +912,86 @@ En la prueba sin QoS, el tráfico TCP de descargas compite de manera agresiva po
 ```bash
 wait
 ```
+### Resultados
+## 1. GAMING (UDP)
+```bash
+500 Kbits/sec enviado
+0% pérdida (sender)
+92% pérdida (receiver)
+jitter ~10 ms
+```
+⚠️ Qué está pasando realmente
+El emisor (sender) cree que envió todo correctamente → 0% loss
+Pero el receptor pierde 92% de paquetes
+
+👉 Esto significa:
+
+Los paquetes están llegando a la red, pero se están descartando en el camino (routers/colas)
+
+🧠 Interpretación técnica
+UDP no retransmite
+El tráfico gaming es pequeño (80 bytes)
+Pero:
+la cola del router está saturada por streaming + TCP
+los paquetes UDP se descartan primero (FIFO sin QoS)
+
+📌 Resultado:
+
+Mucha pérdida real
+jitter empieza a aparecer
+experiencia de juego sería “lag extremo”
+
+## 2. STREAMING (UDP 3 Mbps)
+
+📌 Resultado clave
+```bash
+80% pérdida receiver
+jitter ~7 ms
+throughput real: 567 Kbits/sec
+```
+⚠️ Qué está pasando
+Estás enviando 3 Mbps constantes
+Pero la red solo entrega ~0.5 Mbps
+
+👉 El resto:
+
+se descarta en routers
+o no llega al receptor
+🧠 Interpretación técnica
+
+Streaming UDP:
+
+no se adapta a congestión
+sigue enviando aunque la red colapse
+
+📌 Resultado:
+
+pérdida masiva (80%)
+bitrate real destruido
+jitter bajo “engaña” porque casi nada llega
+
+## 3. DESCARGAS (TCP - 4 streams)
+
+📌 Resultado clave
+```bash
+Retransmisiones: hasta 10
+throughput total: 454 Kbits/sec
+receiver: algunos flujos 0 Bytes
+```
+⚠️ Qué está pasando
+
+TCP hace esto:
+
+Detecta congestión
+Reduce ventana (cwnd baja)
+Retransmite paquetes
+Se auto-limita agresivamente
+🧠 Interpretación
+TCP está “cediendo” todo el ancho de banda
+pero como no hay QoS:
+también sufre pérdidas
+entra en slow start constante
+algunos flujos casi mueren (0 Bytes)
 
 ## 4.3 Medición de Métricas Baseline
 
