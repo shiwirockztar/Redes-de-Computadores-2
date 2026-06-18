@@ -421,6 +421,23 @@ RHOST:PORT  : 127.0.0.1:10013
 MTU         : 1500
 
 ```
+R4 - cloud
+```bash
+enable
+configure terminal
+
+interface fastEthernet0/1
+ ip address 192.168.1.200 255.255.255.0
+ no shutdown
+exit
+
+ip route 0.0.0.0 0.0.0.0 192.168.1.254
+
+end
+write memory
+
+```
+
 
 Puertos de consola/telnet para routers y VPCS en tu PC Linux (ejemplos asignados en tu proyecto):
 
