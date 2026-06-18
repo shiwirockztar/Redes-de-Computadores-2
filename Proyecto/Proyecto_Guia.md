@@ -235,6 +235,8 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.10.10/24 dev eth0
+ip route del default
+ip route add default via 192.168.10.1 dev eth0
 
 # ===== eth1: Internet =====
 ip link set eth1 up
@@ -279,6 +281,8 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.10.20/24 dev eth0
+ip route del default
+ip route add default via 192.168.10.1 dev eth0
 
 # ===== eth1: Internet =====
 ip link set eth1 up
@@ -323,6 +327,8 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.10.30/24 dev eth0
+ip route del default
+ip route add default via 192.168.10.1 dev eth0
 
 # ===== eth1: Internet =====
 ip link set eth1 up
@@ -367,6 +373,8 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.40.10/24 dev eth0
+ip route del default
+ip route add default via 192.168.40.1 dev eth0
 
 # ===== eth1: Internet =====
 ip link set eth1 up
