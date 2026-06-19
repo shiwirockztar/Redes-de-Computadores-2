@@ -222,8 +222,22 @@ R4 - cloud (conexion a mi pc fisico externo y internet)
 ```bash
 conf t
 
+! =========================
+! ACL para NAT (redes internas)
+! =========================
+no access-list 1
+access-list 1 permit 192.168.10.0 0.0.0.255
 access-list 1 permit 192.168.40.0 0.0.0.255
 
+! =========================
+! NAT overload (PAT)
+! =========================
+no ip nat inside source list 1 interface FastEthernet0/1 overload
+ip nat inside source list 1 interface FastEthernet0/1 overload
+
+! =========================
+! INTERFACES NAT
+! =========================
 interface FastEthernet0/0
  ip nat inside
  exit
@@ -232,11 +246,14 @@ interface FastEthernet0/1
  ip nat outside
  exit
 
-ip nat inside source list 1 interface FastEthernet0/1 overload
-
+! =========================
+! RUTA POR DEFECTO A INTERNET
+! =========================
 ip route 0.0.0.0 0.0.0.0 192.168.1.254
 
 end
+
+clear ip nat translation *
 wr
 ```
 
