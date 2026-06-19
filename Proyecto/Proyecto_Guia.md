@@ -218,6 +218,28 @@ Conecta el VPCS cliente hacia la IP del equipo local que corre `iperf3`.
 
 ### Configurar VPCS (PCs y Servidor)
 
+R4 - cloud (conexion a mi pc fisico externo y internet)
+```bash
+conf t
+
+access-list 1 permit 192.168.40.0 0.0.0.255
+
+interface FastEthernet0/0
+ ip nat inside
+ exit
+
+interface FastEthernet0/1
+ ip nat outside
+ exit
+
+ip nat inside source list 1 interface FastEthernet0/1 overload
+
+ip route 0.0.0.0 0.0.0.0 192.168.1.254
+
+end
+wr
+```
+
 En este proyecto usamos exclusivamente VPCS. Como GNS3 corre en tu PC Linux, cada VPCS se configura mediante telnet a `localhost` usando el puerto local asignado por GNS3. Ejemplo de pasos (puertos de ejemplo):
 
 1. PC_Gamer (puerto telnet: `5000`):
@@ -235,12 +257,12 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.10.10/24 dev eth0
-ip route del default
+#ip route del default
 ip route add default via 192.168.10.1 dev eth0
 
 # ===== eth1: Internet =====
-ip link set eth1 up
-udhcpc -i eth1
+#ip link set eth1 up
+#udhcpc -i eth1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
@@ -281,12 +303,12 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.10.20/24 dev eth0
-ip route del default
+#ip route del default
 ip route add default via 192.168.10.1 dev eth0
 
 # ===== eth1: Internet =====
-ip link set eth1 up
-udhcpc -i eth1
+#ip link set eth1 up
+#udhcpc -i eth1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
@@ -327,12 +349,12 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.10.30/24 dev eth0
-ip route del default
+#ip route del default
 ip route add default via 192.168.10.1 dev eth0
 
 # ===== eth1: Internet =====
-ip link set eth1 up
-udhcpc -i eth1
+#ip link set eth1 up
+#udhcpc -i eth1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
@@ -373,12 +395,12 @@ exit
 # ===== eth0: laboratorio GNS3 =====
 ip link set eth0 up
 ip addr add 192.168.40.10/24 dev eth0
-ip route del default
+#ip route del default
 ip route add default via 192.168.40.1 dev eth0
 
 # ===== eth1: Internet =====
-ip link set eth1 up
-udhcpc -i eth1
+#ip link set eth1 up
+#udhcpc -i eth1
 
 # DNS
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
@@ -421,22 +443,7 @@ RHOST:PORT  : 127.0.0.1:10013
 MTU         : 1500
 
 ```
-R4 - cloud
-```bash
-enable
-configure terminal
 
-interface fastEthernet0/1
- ip address 192.168.1.200 255.255.255.0
- no shutdown
-exit
-
-ip route 0.0.0.0 0.0.0.0 192.168.1.254
-
-end
-write memory
-
-```
 
 
 Puertos de consola/telnet para routers y VPCS en tu PC Linux (ejemplos asignados en tu proyecto):
